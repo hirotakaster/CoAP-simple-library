@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map For PubSubClient
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+CoAPSimpleLibrary	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+sendResponse 	KEYWORD2
+get 	KEYWORD2
+put 	KEYWORD2
+response 	KEYWORD2
+loop 	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
