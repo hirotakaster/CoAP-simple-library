@@ -1,5 +1,5 @@
 # CoAP client, server library for Arduino.
-<a href="http://coap.technology/" target=_blank>CoAP</a> simple server, client library for Arduino.
+<a href="http://coap.technology/" target=_blank>CoAP</a> simple server, client library for Arduino IDE, ESP32.
 
 ## Source Code
 This lightweight library source code are only 2 files. coap.cpp, coap.h.
@@ -22,9 +22,11 @@ In this exmples need CoAP server libcoap or microcoap server for check the examp
     git clone https://github.com/obgm/libcoap 
     cd libcoap/
     ./autogen.sh 
-    ./configure --disable-examples 
-    gcc -o coap-server ./examples/coap-server.c -I./include/coap/ -I. -L.libs -lcoap-1 -DWITH_POSIX
+    ./configure
+    make
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.libs
+    gcc -o coap-server ./examples/coap-server.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
+    gcc -o coap-client ./examples/client.c ./examples/coap_list.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
     ./coap-server
     # next start Arduino and check the request/response.
 
