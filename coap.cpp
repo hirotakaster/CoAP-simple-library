@@ -251,8 +251,8 @@ bool Coap::loop() {
 
         } else {
             
-            // call endpoint url function
             String url = "";
+            // call endpoint url function
             for (int i = 0; i < packet.optionnum; i++) {
                 if (packet.options[i].number == COAP_URI_PATH && packet.options[i].length > 0) {
                     char urlname[packet.options[i].length + 1];
@@ -262,23 +262,15 @@ bool Coap::loop() {
                       url += "/";
                     url += urlname;
                 }
-            }
-        }
+            }        
 
-        if (packet.type == COAP_CON) {
-#if defined(ARDUINO)
-            if (!uri.find(url)) {
-#elif defined(SPARK)
-            if (uri.find(url) == uri.end()) {
-#endif
-                sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
-                        COAP_NOT_FOUNT, COAP_NONE, NULL, 0);
-            } else {
-#if defined(ARDUINO)
-                uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
-#elif defined(SPARK)
-                uri[url](packet, _udp->remoteIP(), _udp->remotePort());
-#endif
+            if (packet.type == COAP_CON) {
+                if (!uri.find(url)) {
+                    sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
+                            COAP_NOT_FOUNT, COAP_NONE, NULL, 0);
+                } else {
+                    uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
+                }
             }
         }
 
