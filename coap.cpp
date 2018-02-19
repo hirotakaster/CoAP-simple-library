@@ -249,7 +249,8 @@ bool Coap::loop() {
             // call response function
             resp(packet, _udp->remoteIP(), _udp->remotePort());
 
-        } else if (packet.type == COAP_CON) {
+        } else {
+            
             // call endpoint url function
             String url = "";
             for (int i = 0; i < packet.optionnum; i++) {
@@ -260,8 +261,11 @@ bool Coap::loop() {
                     if(url.length() > 0)
                       url += "/";
                     url += urlname;
-                  }
+                }
             }
+        }
+
+        if (packet.type == COAP_CON) {
 #if defined(ARDUINO)
             if (!uri.find(url)) {
 #elif defined(SPARK)
