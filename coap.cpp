@@ -264,14 +264,18 @@ bool Coap::loop() {
                 }
             }        
 
-            if (packet.type == COAP_CON) {
-                if (!uri.find(url)) {
-                    sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
-                            COAP_NOT_FOUNT, COAP_NONE, NULL, 0);
-                } else {
-                    uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
-                }
+            if (!uri.find(url)) {
+                sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
+                        COAP_NOT_FOUNT, COAP_NONE, NULL, 0);
+            } else {
+                uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
             }
+        }
+
+        if (packet.type == COAP_CON) {
+            // send response 
+            sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid);
+
         }
 
         // next packet
