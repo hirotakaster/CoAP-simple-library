@@ -126,8 +126,9 @@ uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METH
     packet.messageid = rand();
 
     // use URI_HOST UIR_PATH
-    packet.options[packet.optionnum].buffer = (uint8_t *)ip.toString().c_str();
-    packet.options[packet.optionnum].length = ip.toString().length();
+    String ipaddress = String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]); 
+    packet.options[packet.optionnum].buffer = (uint8_t *)ipaddress.c_str();
+    packet.options[packet.optionnum].length = ipaddress.length();
     packet.options[packet.optionnum].number = COAP_URI_HOST;
     packet.optionnum++;
 
