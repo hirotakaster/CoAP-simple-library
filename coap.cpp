@@ -1,26 +1,13 @@
 #include "coap.h"
-
-#if defined(ARDUINO)
 #include "Arduino.h"
-#elif defined(SPARK)
-#include "application.h"
-#endif
 
 #define LOGGING
 
 
 Coap::Coap(
-#if defined(ARDUINO)
     UDP& udp
-#endif
 ) {
-
-#if defined(ARDUINO)
     this->_udp = &udp;
-#elif defined(SPARK)
-    this->_udp = new UDP();
-#endif
-
 }
 
 bool Coap::start() {
@@ -138,11 +125,30 @@ uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METH
     packet.optionnum = 0;
     packet.messageid = rand();
 
-    // if more options?
-    packet.options[packet.optionnum].buffer = (uint8_t *)url;
-    packet.options[packet.optionnum].length = strlen(url);
-    packet.options[packet.optionnum].number = COAP_URI_PATH;
+    // use URI_HOST UIR_PATH
+    packet.options[packet.optionnum].buffer = (uint8_t *)ip.toString().c_str();
+    packet.options[packet.optionnum].length = ip.toString().length();
+    packet.options[packet.optionnum].number = COAP_URI_HOST;
     packet.optionnum++;
+
+    // parse url
+    int idx = 0;
+    for (int i = 0; i < strlen(url); i++) {
+        if (url[i] == '/') {
+            packet.options[packet.optionnum].buffer = (uint8_t *)(url + idx);
+            packet.options[packet.optionnum].length = i - idx;
+            packet.options[packet.optionnum].number = COAP_URI_PATH;
+            packet.optionnum++;
+            idx = i + 1;
+        }
+    }
+
+    if (idx <= strlen(url)) {
+        packet.options[packet.optionnum].buffer = (uint8_t *)(url + idx);
+        packet.options[packet.optionnum].length = strlen(url) - idx;
+        packet.options[packet.optionnum].number = COAP_URI_PATH;
+        packet.optionnum++;
+    }
 
     // send packet
     return this->sendPacket(packet, ip, port);
