@@ -123,12 +123,12 @@ class CoapPacket {
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
-typedef void (*callback)(CoapPacket &, IPAddress, int);
+typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
 
 class CoapUri {
     private:
         String u[MAX_CALLBACK];
-        callback c[MAX_CALLBACK];
+        CoapCallback c[MAX_CALLBACK];
     public:
         CoapUri() {
             for (int i = 0; i < MAX_CALLBACK; i++) {
@@ -136,7 +136,7 @@ class CoapUri {
                 c[i] = NULL;
             }
         };
-        void add(callback call, String url) {
+        void add(CoapCallback call, String url) {
             for (int i = 0; i < MAX_CALLBACK; i++)
                 if (c[i] != NULL && u[i].equals(url)) {
                     c[i] = call;
@@ -150,7 +150,7 @@ class CoapUri {
                 }
             }
         };
-        callback find(String url) {
+        CoapCallback find(String url) {
             for (int i = 0; i < MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
             return NULL;
         } ;
@@ -160,7 +160,7 @@ class Coap {
     private:
         UDP *_udp;
         CoapUri uri;
-        callback resp;
+        CoapCallback resp;
         int _port;
 
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
@@ -173,9 +173,9 @@ class Coap {
         );
         bool start();
         bool start(int port);
-        void response(callback c) { resp = c; }
+        void response(CoapCallback c) { resp = c; }
 
-        void server(callback c, String url) { uri.add(c, url); }
+        void server(CoapCallback c, String url) { uri.add(c, url); }
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen);
