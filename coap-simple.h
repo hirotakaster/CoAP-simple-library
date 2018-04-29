@@ -23,6 +23,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __SIMPLE_COAP_H__
 #define __SIMPLE_COAP_H__
 
+#include <functional>
 #include "Udp.h"
 #define MAX_CALLBACK 10
 
@@ -123,7 +124,7 @@ class CoapPacket {
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
-typedef void (*callback)(CoapPacket &, IPAddress, int);
+typedef std::function<void(CoapPacket &, IPAddress, int)> callback;
 
 class CoapUri {
     private:
