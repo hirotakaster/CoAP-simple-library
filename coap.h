@@ -23,7 +23,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __SIMPLE_COAP_H__
 #define __SIMPLE_COAP_H__
 
-#include "Udp.h"
+#include <Udp.h>
+#include <EthernetUdp.h>
+
 #define MAX_CALLBACK 10
 
 #define COAP_HEADER_SIZE 4
@@ -112,20 +114,20 @@ class CoapPacket {
     public:
     uint8_t type;
     uint8_t code;
-    uint8_t *token;
+    const uint8_t *token;
     uint8_t tokenlen;
-    uint8_t *payload;
+    const uint8_t *payload;
     uint8_t payloadlen;
     uint16_t messageid;
     
     uint8_t optionnum;
     CoapOption options[MAX_OPTION_NUM];
 };
-typedef void (*callback)(CoapPacket &, IPAddress, int);
+typedef void (*callback)(CoapPacket &, const IPAddress &, int);
 
 class CoapUri {
     private:
-        String u[MAX_CALLBACK];
+        const char* u[MAX_CALLBACK];
         callback c[MAX_CALLBACK];
     public:
         CoapUri() {
@@ -134,55 +136,53 @@ class CoapUri {
                 c[i] = NULL;
             }
         };
-        void add(callback call, String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++)
-                if (c[i] != NULL && u[i].equals(url)) {
-                    c[i] = call;
-                    return ;
-                }
+
+	// url is not copied!
+        void add(callback call, const char* url) {
             for (int i = 0; i < MAX_CALLBACK; i++) {
-                if (c[i] == NULL) {
+                if (c[i] == NULL || strcmp(u[i], url) == 0) {
                     c[i] = call;
                     u[i] = url;
                     return;
                 }
             }
         };
-        callback find(String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
+        callback find(const char* url) {
+            for (int i = 0; i < MAX_CALLBACK; i++) {
+	        if (c[i] != NULL && strcmp(u[i], url) == 0) return c[i];
+	    }
             return NULL;
         } ;
 };
 
+
 class Coap {
     private:
-        UDP *_udp;
+	// If we don't always want EthernetUDP we should create a template.
+        EthernetUDP _udp;
         CoapUri uri;
         callback resp;
         int _port;
 
-        uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
-        uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
+        uint16_t sendPacket(CoapPacket &packet, const IPAddress& ip);
+        uint16_t sendPacket(CoapPacket &packet, const IPAddress& ip, int port);
         int parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf, size_t buflen);
 
     public:
-        Coap(
-            UDP& udp
-        );
         bool start();
         bool start(int port);
         void response(callback c) { resp = c; }
         
-        void server(callback c, String url) { uri.add(c, url); }
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, uint8_t *token, int tokenlen);
+        void server(callback c, const char* url) { uri.add(c, url); }
+        uint16_t sendResponse(const IPAddress& ip, int port, uint16_t messageid);
+        uint16_t sendResponse(const IPAddress& ip, int port, uint16_t messageid, const char *payload);
+        uint16_t sendResponse(const IPAddress& ip, int port, uint16_t messageid, const char *payload, int payloadlen);
+        uint16_t sendResponse(const IPAddress& ip, int port, uint16_t messageid, const char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
         
-        uint16_t get(IPAddress ip, int port, char *url);
-        uint16_t put(IPAddress ip, int port, char *url, char *payload);
-        uint16_t put(IPAddress ip, int port, char *url, char *payload, int payloadlen);
-        uint16_t send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen);
+        uint16_t get(const IPAddress& ip, int port, const char *url);
+        uint16_t put(const IPAddress& ip, int port, const char *url, const char *payload);
+        uint16_t put(const IPAddress& ip, int port, const char *url, const char *payload, int payloadlen);
+        uint16_t send(const IPAddress& ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen);
 
         bool loop();
 };
