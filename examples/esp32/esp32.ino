@@ -1,6 +1,6 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
-#include <coap.h>
+#include <coap-simple.h>
 
 const char* ssid     = "your-ssid";
 const char* password = "your-password";
