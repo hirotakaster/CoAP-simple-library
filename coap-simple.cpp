@@ -1,4 +1,4 @@
-#include "coap.h"
+#include "coap-simple.h"
 #include "Arduino.h"
 
 #define LOGGING
