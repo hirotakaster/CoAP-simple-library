@@ -3,6 +3,14 @@
 
 #define LOGGING
 
+void CoapPacket::addOption(uint8_t number, uint8_t length, uint8_t *opt_payload)
+{
+    options[optionnum].number = number;
+    options[optionnum].length = length;
+    options[optionnum].buffer = opt_payload;
+
+    ++optionnum;
+}
 
 Coap::Coap(
     UDP& udp
@@ -127,28 +135,19 @@ uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METH
 
     // use URI_HOST UIR_PATH
     String ipaddress = String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]); 
-    packet.options[packet.optionnum].buffer = (uint8_t *)ipaddress.c_str();
-    packet.options[packet.optionnum].length = ipaddress.length();
-    packet.options[packet.optionnum].number = COAP_URI_HOST;
-    packet.optionnum++;
+	packet.addOption(COAP_URI_HOST, ipaddress.length(), (uint8_t *)ipaddress.c_str());
 
     // parse url
     int idx = 0;
     for (int i = 0; i < strlen(url); i++) {
         if (url[i] == '/') {
-            packet.options[packet.optionnum].buffer = (uint8_t *)(url + idx);
-            packet.options[packet.optionnum].length = i - idx;
-            packet.options[packet.optionnum].number = COAP_URI_PATH;
-            packet.optionnum++;
+			packet.addOption(COAP_URI_PATH, i-idx, (uint8_t *)(url + idx));
             idx = i + 1;
         }
     }
 
     if (idx <= strlen(url)) {
-        packet.options[packet.optionnum].buffer = (uint8_t *)(url + idx);
-        packet.options[packet.optionnum].length = strlen(url) - idx;
-        packet.options[packet.optionnum].number = COAP_URI_PATH;
-        packet.optionnum++;
+		packet.addOption(COAP_URI_PATH, strlen(url)-idx, (uint8_t *)(url + idx));
     }
 
     // send packet
@@ -324,10 +323,7 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *pa
     char optionBuffer[2];
     optionBuffer[0] = ((uint16_t)type & 0xFF00) >> 8;
     optionBuffer[1] = ((uint16_t)type & 0x00FF) ;
-    packet.options[packet.optionnum].buffer = (uint8_t *)optionBuffer;
-    packet.options[packet.optionnum].length = 2;
-    packet.options[packet.optionnum].number = COAP_CONTENT_FORMAT;
-    packet.optionnum++;
+	packet.addOption(COAP_CONTENT_FORMAT, 2, (uint8_t *)optionBuffer);
 
     return this->sendPacket(packet, ip, port);
 }
