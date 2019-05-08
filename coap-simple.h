@@ -98,7 +98,8 @@ typedef enum {
     COAP_APPLICATION_XML = 41,
     COAP_APPLICATION_OCTET_STREAM = 42,
     COAP_APPLICATION_EXI = 47,
-    COAP_APPLICATION_JSON = 50
+    COAP_APPLICATION_JSON = 50,
+    COAP_APPLICATION_CBOR = 60
 } COAP_CONTENT_TYPE;
 
 class CoapOption {
@@ -110,16 +111,18 @@ class CoapOption {
 
 class CoapPacket {
     public:
-    uint8_t type;
-    uint8_t code;
-    uint8_t *token;
-    uint8_t tokenlen;
-    uint8_t *payload;
-    uint8_t payloadlen;
-    uint16_t messageid;
-    
-    uint8_t optionnum;
-    CoapOption options[MAX_OPTION_NUM];
+		uint8_t type;
+		uint8_t code;
+		uint8_t *token;
+		uint8_t tokenlen;
+		uint8_t *payload;
+		uint8_t payloadlen;
+		uint16_t messageid;
+		
+		uint8_t optionnum;
+		CoapOption options[MAX_OPTION_NUM];
+
+		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
 typedef void (*callback)(CoapPacket &, IPAddress, int);
 
@@ -183,6 +186,7 @@ class Coap {
         uint16_t put(IPAddress ip, int port, char *url, char *payload);
         uint16_t put(IPAddress ip, int port, char *url, char *payload, int payloadlen);
         uint16_t send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen);
+        uint16_t send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type);
 
         bool loop();
 };
