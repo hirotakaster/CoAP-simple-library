@@ -8,7 +8,7 @@
 #define LEDP 9
 
 byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 };
-IPaddress dev_ip(XXX,XXX,XXX,XXX);
+IPAddress dev_ip(XXX,XXX,XXX,XXX);
 
 // CoAP client response callback
 void callback_response(CoapPacket &packet, IPAddress ip, int port);
