@@ -5,7 +5,10 @@
 #include <EthernetUdp.h>
 #include <coap-simple.h>
 
+#define LEDP 9
+
 byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 };
+IPAddress dev_ip(XXX,XXX,XXX,XXX);
 
 // CoAP client response callback
 void callback_response(CoapPacket &packet, IPAddress ip, int port);
@@ -37,10 +40,10 @@ void callback_light(CoapPacket &packet, IPAddress ip, int port) {
     LEDSTATE = true;
       
   if (LEDSTATE) {
-    digitalWrite(9, HIGH) ; 
+    digitalWrite(LEDP, HIGH) ; 
     coap.sendResponse(ip, port, packet.messageid, "1");
   } else { 
-    digitalWrite(9, LOW) ; 
+    digitalWrite(LEDP, LOW) ; 
     coap.sendResponse(ip, port, packet.messageid, "0");
   }
 }
@@ -59,17 +62,14 @@ void callback_response(CoapPacket &packet, IPAddress ip, int port) {
 void setup() {
   Serial.begin(9600);
 
-  Ethernet.begin(mac);
+  Ethernet.begin(mac,dev_ip);
   Serial.print("My IP address: ");
-  for (byte thisByte = 0; thisByte < 4; thisByte++) {
-    Serial.print(Ethernet.localIP()[thisByte], DEC);
-    Serial.print(".");
-  }
+  Serial.print(Ethernet.localIP());
   Serial.println();
 
   // LED State
-  pinMode(9, OUTPUT);
-  digitalWrite(9, HIGH);
+  pinMode(LEDP, OUTPUT);
+  digitalWrite(LEDP, HIGH);
   LEDSTATE = true;
   
   // add server url endpoints.

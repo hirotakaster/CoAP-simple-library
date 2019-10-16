@@ -6,6 +6,7 @@
 #include <coap-simple.h>
 
 byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 };
+IPAddress dev_ip(XXX,XXX,XXX,XXX);
 
 // CoAP client response callback
 void callback_response(CoapPacket &packet, IPAddress ip, int port);
@@ -28,12 +29,9 @@ void callback_response(CoapPacket &packet, IPAddress ip, int port) {
 void setup() {
   Serial.begin(9600);
 
-  Ethernet.begin(mac);
+  Ethernet.begin(mac,dev_ip);
   Serial.print("My IP address: ");
-  for (byte thisByte = 0; thisByte < 4; thisByte++) {
-    Serial.print(Ethernet.localIP()[thisByte], DEC);
-    Serial.print(".");
-  }
+  Serial.print(Ethernet.localIP());
   Serial.println();
 
 
