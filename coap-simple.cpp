@@ -138,9 +138,9 @@ uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METH
     packet.messageid = rand();
 
     // use URI_HOST UIR_PATH
-	char ipaddress[16] = "";
-	sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-	packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
+    char ipaddress[16] = "";
+    sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
 
     // parse url
     int idx = 0;
