@@ -138,7 +138,7 @@ uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METH
     packet.messageid = rand();
 
     // use URI_HOST UIR_PATH
-    String ipaddress = String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]); 
+    String ipaddress = String(ip[0]) + String(".") + String(ip[1]) + String(".") + String(ip[2]) + String(".") + String(ip[3]);
 	packet.addOption(COAP_URI_HOST, ipaddress.length(), (uint8_t *)ipaddress.c_str());
 
     // parse url
@@ -247,7 +247,7 @@ bool Coap::loop() {
             uint8_t *end = buffer + packetlen;
             uint8_t *p = buffer + COAP_HEADER_SIZE + packet.tokenlen;
             while(optionIndex < MAX_OPTION_NUM && *p != 0xFF && p < end) {
-                packet.options[optionIndex];
+                //packet.options[optionIndex];
                 if (0 != parseOption(&packet.options[optionIndex], &delta, &p, end-p))
                     return false;
                 optionIndex++;
@@ -268,7 +268,7 @@ bool Coap::loop() {
             resp(packet, _udp->remoteIP(), _udp->remotePort());
 
         } else {
-            
+
             String url = "";
             // call endpoint url function
             for (int i = 0; i < packet.optionnum; i++) {
@@ -280,7 +280,7 @@ bool Coap::loop() {
                       url += "/";
                     url += urlname;
                 }
-            }        
+            }
 
             if (!uri.find(url)) {
                 sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
@@ -292,7 +292,7 @@ bool Coap::loop() {
 
         /* this type check did not use.
         if (packet.type == COAP_CON) {
-            // send response 
+            // send response
              sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid);
         }
          */
@@ -305,15 +305,15 @@ bool Coap::loop() {
 }
 
 uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid) {
-    this->sendResponse(ip, port, messageid, NULL, 0, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+    return this->sendResponse(ip, port, messageid, NULL, 0, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
 uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload) {
-    this->sendResponse(ip, port, messageid, payload, strlen(payload), COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+    return this->sendResponse(ip, port, messageid, payload, strlen(payload), COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
 uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen) {
-    this->sendResponse(ip, port, messageid, payload, payloadlen, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+    return this->sendResponse(ip, port, messageid, payload, payloadlen, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
 
