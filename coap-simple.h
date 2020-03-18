@@ -9,7 +9,7 @@ without limitation the rights to use, copy, modify, merge, publish,
 distribute, sublicense, and/or sell copies of the Software, and to
 permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
-   
+
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -30,7 +30,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define COAP_OPTION_HEADER_SIZE 1
 #define COAP_PAYLOAD_MARKER 0xFF
 #define MAX_OPTION_NUM 10
-#define BUF_MAX_SIZE 50
+#define BUF_MAX_SIZE 1024
 #define COAP_DEFAULT_PORT 5683
 
 #define RESPONSE_CODE(class, detail) ((class << 5) | (detail))
@@ -118,7 +118,7 @@ class CoapPacket {
 		uint8_t *payload;
 		uint8_t payloadlen;
 		uint16_t messageid;
-		
+
 		uint8_t optionnum;
 		CoapOption options[MAX_OPTION_NUM];
 
@@ -175,13 +175,13 @@ class Coap {
         bool start();
         bool start(int port);
         void response(callback c) { resp = c; }
-        
+
         void server(callback c, String url) { uri.add(c, url); }
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, uint8_t *token, int tokenlen);
-        
+
         uint16_t get(IPAddress ip, int port, char *url);
         uint16_t put(IPAddress ip, int port, char *url, char *payload);
         uint16_t put(IPAddress ip, int port, char *url, char *payload, int payloadlen);
