@@ -111,15 +111,14 @@ class CoapOption {
 
 class CoapPacket {
     public:
-		uint8_t type;
-		uint8_t code;
-		uint8_t *token;
-		uint8_t tokenlen;
-		uint8_t *payload;
-		uint8_t payloadlen;
-		uint16_t messageid;
-
-		uint8_t optionnum;
+		uint8_t type = 0;
+		uint8_t code = 0;
+		uint8_t *token = NULL;
+		uint8_t tokenlen = 0;
+		uint8_t *payload = NULL;
+		uint8_t payloadlen = 0;
+		uint16_t messageid = 0;
+		uint8_t optionnum = 0;
 		CoapOption options[MAX_OPTION_NUM];
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
