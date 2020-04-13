@@ -25,13 +25,19 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <functional>
 #include "Udp.h"
-#define MAX_CALLBACK 10
+#ifndef COAP_MAX_CALLBACK
+#define COAP_MAX_CALLBACK 10
+#endif
 
 #define COAP_HEADER_SIZE 4
 #define COAP_OPTION_HEADER_SIZE 1
 #define COAP_PAYLOAD_MARKER 0xFF
-#define MAX_OPTION_NUM 10
-#define BUF_MAX_SIZE 1024
+#ifndef COAP_MAX_OPTION_NUM
+#define COAP_MAX_OPTION_NUM 10
+#endif
+#ifndef COAP_BUF_MAX_SIZE
+#define COAP_BUF_MAX_SIZE 1024
+#endif
 #define COAP_DEFAULT_PORT 5683
 
 #define RESPONSE_CODE(class, detail) ((class << 5) | (detail))
@@ -114,36 +120,36 @@ class CoapPacket {
     public:
 		uint8_t type = 0;
 		uint8_t code = 0;
-		uint8_t *token = NULL;
+		const uint8_t *token = NULL;
 		uint8_t tokenlen = 0;
-		uint8_t *payload = NULL;
+		const uint8_t *payload = NULL;
 		uint8_t payloadlen = 0;
 		uint16_t messageid = 0;
 		uint8_t optionnum = 0;
-		CoapOption options[MAX_OPTION_NUM];
+		CoapOption options[COAP_MAX_OPTION_NUM];
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
-typedef std::function<void(CoapPacket &, IPAddress, int)> callback;
+typedef std::function<void(CoapPacket &, IPAddress, int)> CoapCallback;
 
 class CoapUri {
     private:
-        String u[MAX_CALLBACK];
-        callback c[MAX_CALLBACK];
+        String u[COAP_MAX_CALLBACK];
+        CoapCallback c[COAP_MAX_CALLBACK];
     public:
         CoapUri() {
-            for (int i = 0; i < MAX_CALLBACK; i++) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) {
                 u[i] = "";
                 c[i] = NULL;
             }
         };
-        void add(callback call, String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++)
+        void add(CoapCallback call, String url) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++)
                 if (c[i] != NULL && u[i].equals(url)) {
                     c[i] = call;
                     return ;
                 }
-            for (int i = 0; i < MAX_CALLBACK; i++) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) {
                 if (c[i] == NULL) {
                     c[i] = call;
                     u[i] = url;
@@ -151,8 +157,8 @@ class CoapUri {
                 }
             }
         };
-        callback find(String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
+        CoapCallback find(String url) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
             return NULL;
         } ;
 };
@@ -161,7 +167,7 @@ class Coap {
     private:
         UDP *_udp;
         CoapUri uri;
-        callback resp;
+        CoapCallback resp;
         int _port;
 
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
@@ -174,19 +180,19 @@ class Coap {
         );
         bool start();
         bool start(int port);
-        void response(callback c) { resp = c; }
+        void response(CoapCallback c) { resp = c; }
 
-        void server(callback c, String url) { uri.add(c, url); }
+        void server(CoapCallback c, String url) { uri.add(c, url); }
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, uint8_t *token, int tokenlen);
-
-        uint16_t get(IPAddress ip, int port, char *url);
-        uint16_t put(IPAddress ip, int port, char *url, char *payload);
-        uint16_t put(IPAddress ip, int port, char *url, char *payload, int payloadlen);
-        uint16_t send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen);
-        uint16_t send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type);
+        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload);
+        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen);
+        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
+        
+        uint16_t get(IPAddress ip, int port, const char *url);
+        uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
+        uint16_t put(IPAddress ip, int port, const char *url, const char *payload, int payloadlen);
+        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen);
+        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type);
 
         bool loop();
 };
