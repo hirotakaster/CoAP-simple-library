@@ -107,23 +107,27 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
     return packet.messageid;
 }
 
-uint16_t Coap::get(IPAddress ip, int port, char *url) {
+uint16_t Coap::get(IPAddress ip, int port, const char *url) {
     return this->send(ip, port, url, COAP_CON, COAP_GET, NULL, 0, NULL, 0);
 }
 
-uint16_t Coap::put(IPAddress ip, int port, char *url, char *payload) {
+uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload) {
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, strlen(payload));
 }
 
-uint16_t Coap::put(IPAddress ip, int port, char *url, char *payload, int payloadlen) {
+uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload, int payloadlen) {
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, payloadlen);
 }
 
+<<<<<<< HEAD:coap-simple.cpp
 uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen) {
     return this->send(ip, port, url, type, method, token, tokenlen, (uint8_t *)payload, payloadlen, COAP_NONE);
 }
 
 uint16_t Coap::send(IPAddress ip, int port, char *url, COAP_TYPE type, COAP_METHOD method, uint8_t *token, uint8_t tokenlen, uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type) {
+=======
+uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen) {
+>>>>>>> d16be38... Added const specifier to pointer arguments whenever possible:coap.cpp
 
     // make packet
     CoapPacket packet;
@@ -309,17 +313,26 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid) {
     return this->sendResponse(ip, port, messageid, NULL, 0, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
+<<<<<<< HEAD:coap-simple.cpp
 uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload) {
     return this->sendResponse(ip, port, messageid, payload, strlen(payload), COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
 uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen) {
     return this->sendResponse(ip, port, messageid, payload, payloadlen, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+=======
+uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload) {
+    this->sendResponse(ip, port, messageid, payload, strlen(payload), COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+}
+
+uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen) {
+    this->sendResponse(ip, port, messageid, payload, payloadlen, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
+>>>>>>> d16be38... Added const specifier to pointer arguments whenever possible:coap.cpp
 }
 
 
-uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, char *payload, int payloadlen,
-                COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, uint8_t *token, int tokenlen) {
+uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen,
+                COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen) {
     // make packet
     CoapPacket packet;
 
