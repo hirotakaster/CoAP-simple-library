@@ -24,13 +24,19 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define __SIMPLE_COAP_H__
 
 #include "Udp.h"
-#define MAX_CALLBACK 10
+#ifndef COAP_MAX_CALLBACK
+#define COAP_MAX_CALLBACK 10
+#endif
 
 #define COAP_HEADER_SIZE 4
 #define COAP_OPTION_HEADER_SIZE 1
 #define COAP_PAYLOAD_MARKER 0xFF
-#define MAX_OPTION_NUM 10
-#define BUF_MAX_SIZE 1024
+#ifndef COAP_MAX_OPTION_NUM
+#define COAP_MAX_OPTION_NUM 10
+#endif
+#ifndef COAP_BUF_MAX_SIZE
+#define COAP_BUF_MAX_SIZE 1024
+#endif
 #define COAP_DEFAULT_PORT 5683
 
 #define RESPONSE_CODE(class, detail) ((class << 5) | (detail))
@@ -119,7 +125,7 @@ class CoapPacket {
 		uint8_t payloadlen = 0;
 		uint16_t messageid = 0;
 		uint8_t optionnum = 0;
-		CoapOption options[MAX_OPTION_NUM];
+		CoapOption options[COAP_MAX_OPTION_NUM];
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
@@ -127,22 +133,22 @@ typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
 
 class CoapUri {
     private:
-        String u[MAX_CALLBACK];
-        CoapCallback c[MAX_CALLBACK];
+        String u[COAP_MAX_CALLBACK];
+        CoapCallback c[COAP_MAX_CALLBACK];
     public:
         CoapUri() {
-            for (int i = 0; i < MAX_CALLBACK; i++) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) {
                 u[i] = "";
                 c[i] = NULL;
             }
         };
         void add(CoapCallback call, String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++)
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++)
                 if (c[i] != NULL && u[i].equals(url)) {
                     c[i] = call;
                     return ;
                 }
-            for (int i = 0; i < MAX_CALLBACK; i++) {
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) {
                 if (c[i] == NULL) {
                     c[i] = call;
                     u[i] = url;
@@ -151,7 +157,7 @@ class CoapUri {
             }
         };
         CoapCallback find(String url) {
-            for (int i = 0; i < MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
+            for (int i = 0; i < COAP_MAX_CALLBACK; i++) if (c[i] != NULL && u[i].equals(url)) return c[i];
             return NULL;
         } ;
 };
