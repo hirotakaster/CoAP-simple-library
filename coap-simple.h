@@ -123,7 +123,7 @@ class CoapPacket {
 		const uint8_t *token = NULL;
 		uint8_t tokenlen = 0;
 		const uint8_t *payload = NULL;
-		uint8_t payloadlen = 0;
+		size_t payloadlen = 0;
 		uint16_t messageid = 0;
 		uint8_t optionnum = 0;
 		CoapOption options[COAP_MAX_OPTION_NUM];
@@ -185,14 +185,14 @@ class Coap {
         void server(CoapCallback c, String url) { uri.add(c, url); }
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
         uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen);
-        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
+        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen);
+        uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
         
         uint16_t get(IPAddress ip, int port, const char *url);
         uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
-        uint16_t put(IPAddress ip, int port, const char *url, const char *payload, int payloadlen);
-        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen);
-        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type);
+        uint16_t put(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
+        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen);
+        uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type);
 
         bool loop();
 };

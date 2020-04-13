@@ -115,15 +115,15 @@ uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload)
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, strlen(payload));
 }
 
-uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload, int payloadlen) {
+uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen) {
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, payloadlen);
 }
 
-uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen) {
+uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen) {
     return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, COAP_NONE);
 }
 
-uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, uint32_t payloadlen, COAP_CONTENT_TYPE content_type) {
+uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type) {
 
     // make packet
     CoapPacket packet;
@@ -313,12 +313,12 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const ch
     return this->sendResponse(ip, port, messageid, payload, strlen(payload), COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
-uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen) {
+uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen) {
     return this->sendResponse(ip, port, messageid, payload, payloadlen, COAP_CONTENT, COAP_TEXT_PLAIN, NULL, 0);
 }
 
 
-uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, int payloadlen,
+uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen,
                 COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen) {
     // make packet
     CoapPacket packet;
