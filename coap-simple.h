@@ -35,7 +35,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define COAP_MAX_OPTION_NUM 10
 #endif
 #ifndef COAP_BUF_MAX_SIZE
-#define COAP_BUF_MAX_SIZE 1024
+#define COAP_BUF_MAX_SIZE 128
 #endif
 #define COAP_DEFAULT_PORT 5683
 
@@ -129,7 +129,6 @@ class CoapPacket {
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
-
 typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
 
 class CoapUri {
