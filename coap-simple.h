@@ -23,7 +23,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __SIMPLE_COAP_H__
 #define __SIMPLE_COAP_H__
 
-#include <functional>
 #include "Udp.h"
 #ifndef COAP_MAX_CALLBACK
 #define COAP_MAX_CALLBACK 10
@@ -36,7 +35,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define COAP_MAX_OPTION_NUM 10
 #endif
 #ifndef COAP_BUF_MAX_SIZE
-#define COAP_BUF_MAX_SIZE 1024
+#define COAP_BUF_MAX_SIZE 128
 #endif
 #define COAP_DEFAULT_PORT 5683
 
@@ -130,7 +129,7 @@ class CoapPacket {
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
-typedef std::function<void(CoapPacket &, IPAddress, int)> CoapCallback;
+typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
 
 class CoapUri {
     private:
