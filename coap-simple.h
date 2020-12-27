@@ -129,7 +129,16 @@ class CoapPacket {
 
 		void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 };
+
+#if defined(ESP8266)
+#include <functional>
+typedef std::function<void(CoapPacket &, IPAddress, int)> CoapCallback;
+#elif defined(ESP32)
+#include <functional>
+typedef std::function<void(CoapPacket &, IPAddress, int)> CoapCallback;
+#else
 typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
+#endif
 
 class CoapUri {
     private:
