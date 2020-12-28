@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Update test code environments.
       run: |
-        sed -i -e "s/xxx/10/g" ./examples/coaptest/coaptest.ino
+        sed -i -e "s/XXX/10/g" ./examples/coaptest/coaptest.ino
     - name: Arduino build
       uses: ArminJo/arduino-test-compile@v3
       with:

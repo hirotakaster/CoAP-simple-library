@@ -29,7 +29,7 @@ jobs:
     - name: Update test code environments.
       run: |
         platformio project init
-        sed -i -e "s/xxx/10/g" ./examples/coaptest/coaptest.ino
+        sed -i -e "s/XXX/10/g" ./examples/coaptest/coaptest.ino
         mkdir lib/coap-simple/
         mv coap-simple* lib/coap-simple/
         mv ./examples/coaptest/coaptest.ino src/
