@@ -2,7 +2,7 @@
 # - <https://docs.platformio.org/en/latest/integration/ci/github-actions.html>
 # - <https://docs.github.com/en/free-pro-team@latest/actions/quickstart>
 name: build-platformio
-on: push
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest

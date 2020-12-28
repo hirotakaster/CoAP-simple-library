@@ -2,7 +2,7 @@
 # - <https://github.com/marketplace/actions/test-compile-for-arduino>
 # - <https://docs.github.com/en/free-pro-team@latest/actions/quickstart>
 name: build-arduino
-on: push
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
