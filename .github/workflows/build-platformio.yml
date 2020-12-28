@@ -1,0 +1,40 @@
+# Created this action based on information found in:
+# - <https://docs.platformio.org/en/latest/integration/ci/github-actions.html>
+# - <https://docs.github.com/en/free-pro-team@latest/actions/quickstart>
+name: build-platformio
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache PlatformIO
+      uses: actions/cache@v2
+      with:
+        path: ~/.platformio
+        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade platformio
+    - name: Update test code environments.
+      run: |
+        platformio project init
+        sed -i -e "s/xxx/10/g" ./examples/coaptest/coaptest.ino
+        mkdir lib/coap-simple/
+        mv coap-simple* lib/coap-simple/
+        mv ./examples/coaptest/coaptest.ino src/
+        pio init -b esp32thing -b uno
+        pio lib install Ethernet
+        pio init -b nodemcuv2
+    - name: Run PlatformIO
+      run: pio run -e uno -e nodemcuv2 -e esp32thing
