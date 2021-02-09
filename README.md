@@ -13,24 +13,28 @@ Some sample sketches for Arduino included(/examples/).
 ## How to use
 Download this source code branch zip file and extract it to the Arduino libraries directory or checkout repository. Here is checkout on MacOS X.
 
-    cd $HOME/Documents/Arduino/libraries/
-    git clone https://github.com/hirotakaster/CoAP-simple-library
-    # restart Arduino IDE, you can find CoAP-simple-library examples.
+```bash
+cd $HOME/Documents/Arduino/libraries/
+git clone https://github.com/hirotakaster/CoAP-simple-library
+# restart Arduino IDE, you can find CoAP-simple-library examples.
+```
 
 These examples need CoAP server libcoap or microcoap server to test the example program. 
 
 This is  how to use the example with libcoap on Ubuntu Linux. You don't need to use CoAP server(request/reseponse), simply follow these steps :
 
-    git clone https://github.com/obgm/libcoap 
-    cd libcoap/
-    ./autogen.sh 
-    ./configure
-    make
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.libs
-    gcc -o coap-server ./examples/coap-server.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
-    gcc -o coap-client ./examples/client.c ./examples/coap_list.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
-    ./coap-server
-    # next start Arduino and check the request/response.
+```bash
+git clone https://github.com/obgm/libcoap 
+cd libcoap/
+./autogen.sh 
+./configure
+make
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.libs
+gcc -o coap-server ./examples/coap-server.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
+gcc -o coap-client ./examples/client.c ./examples/coap_list.c -I./include -I. -L.libs -lcoap-1 -DWITH_POSIX
+./coap-server
+# next start Arduino and check the request/response.
+```
 
 ## Particle Photon, Core compatible
 Check <a href="https://github.com/hirotakaster/CoAP">this</a> version of the library for Particle Photon, Core compatibility.
