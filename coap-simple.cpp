@@ -279,7 +279,7 @@ bool Coap::loop() {
                     urlname[packet.options[i].length] = 0;
                     if(url.length() > 0)
                       url += "/";
-                    url += urlname;
+                    url += (const char *)urlname;
                 }
             }
 
