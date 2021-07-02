@@ -6,6 +6,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
     - name: Cache pip
@@ -30,11 +31,18 @@ jobs:
       run: |
         platformio project init
         sed -i -e "s/XXX/10/g" ./examples/coaptest/coaptest.ino
+        sed -i -e "s/XXX/10/g" ./examples/esp8266/esp8266.ino
+        sed -i -e "s/XXX/10/g" ./examples/esp32/esp32.ino
         mkdir lib/coap-simple/
         mv coap-simple* lib/coap-simple/
         mv ./examples/coaptest/coaptest.ino src/
         pio init -b esp32thing -b uno
         pio lib install Ethernet
         pio init -b nodemcuv2
-    - name: Run PlatformIO
-      run: pio run -e uno -e nodemcuv2 -e esp32thing
+    - name: Run PlatformIO(uno)
+      run: pio run -e uno
+    - name: Run PlatformIO(esp8266)
+      run: pio run -e nodemcuv2
+    - name: Run PlatformIO(esp32)
+      run: pio run -e esp32thing
+

@@ -6,23 +6,41 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arduino-board-fqbn:
-        - arduino:avr:uno
-        - esp8266:esp8266:nodemcuv2
-        - esp32:esp32:esp32thing
-      
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python
+      uses: actions/setup-python@v2
     - name: Update test code environments.
       run: |
         sed -i -e "s/XXX/10/g" ./examples/coaptest/coaptest.ino
+        sed -i -e "s/XXX/10/g" ./examples/esp8266/esp8266.ino
+        sed -i -e "s/XXX/10/g" ./examples/esp32/esp32.ino
+        python -m pip install --upgrade pip
+        pip install pyserial
     - name: Arduino build
       uses: ArminJo/arduino-test-compile@v3
       with:
-        platform-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json,https://dl.espressif.com/dl/package_esp32_index.json
-        arduino-board-fqbn: ${{ matrix. arduino-board-fqbn }}
+        arduino-board-fqbn: arduino:avr:uno
         required-libraries: Ethernet
         sketch-names: coaptest.ino
+    - name: Arduino build For ESP8266
+      uses: ArminJo/arduino-test-compile@v3
+      with:
+        platform-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+        arduino-board-fqbn: esp8266:esp8266:nodemcuv2
+        sketch-names: esp8266.ino
+    - name: Arduino build For ESP32
+      uses: ArminJo/arduino-test-compile@v3
+      with:
+        platform-url: https://dl.espressif.com/dl/package_esp32_index.json
+        arduino-board-fqbn: esp32:esp32:esp32thing
+        sketch-names: esp32.ino
