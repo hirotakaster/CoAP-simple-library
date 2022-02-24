@@ -124,6 +124,10 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
 }
 
 uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type) {
+    return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, content_type, rand());
+}
+
+uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type, uint16_t messageid) {
 
     // make packet
     CoapPacket packet;
@@ -135,7 +139,7 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
     packet.payload = payload;
     packet.payloadlen = payloadlen;
     packet.optionnum = 0;
-    packet.messageid = rand();
+    packet.messageid = messageid;
 
     // use URI_HOST UIR_PATH
     char ipaddress[16] = "";
