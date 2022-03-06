@@ -147,8 +147,8 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
     packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
 
     // parse url
-    int idx = 0;
-    for (int i = 0; i < strlen(url); i++) {
+    size_t idx = 0;
+    for (size_t i = 0; i < strlen(url); i++) {
         if (url[i] == '/') {
 			packet.addOption(COAP_URI_PATH, i-idx, (uint8_t *)(url + idx));
             idx = i + 1;
