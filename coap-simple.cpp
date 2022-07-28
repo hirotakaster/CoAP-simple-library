@@ -12,10 +12,13 @@ void CoapPacket::addOption(uint8_t number, uint8_t length, uint8_t *opt_payload)
     ++optionnum;
 }
 
+
 Coap::Coap(
-    UDP& udp
+    UDP& udp,
+    int coap_buf_size  /* default value is COAP_BUF_MAX_SIZE */
 ) {
     this->_udp = &udp;
+    this->coap_buf_size = coap_buf_size;
 }
 
 bool Coap::start() {
@@ -33,7 +36,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip) {
 }
 
 uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
-    uint8_t buffer[COAP_BUF_MAX_SIZE];
+    uint8_t buffer[coap_buf_size];
     uint8_t *p = buffer;
     uint16_t running_delta = 0;
     uint16_t packetSize = 0;
@@ -60,7 +63,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
         uint32_t optdelta;
         uint8_t len, delta;
 
-        if (packetSize + 5 + packet.options[i].length >= COAP_BUF_MAX_SIZE) {
+        if (packetSize + 5 + packet.options[i].length >= coap_buf_size) {
             return 0;
         }
         optdelta = packet.options[i].number - running_delta;
@@ -92,7 +95,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
 
     // make payload
     if (packet.payloadlen > 0) {
-        if ((packetSize + 1 + packet.payloadlen) >= COAP_BUF_MAX_SIZE) {
+        if ((packetSize + 1 + packet.payloadlen) >= coap_buf_size) {
             return 0;
         }
         *p++ = 0xFF;
@@ -218,11 +221,11 @@ int Coap::parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf
 
 bool Coap::loop() {
 
-    uint8_t buffer[COAP_BUF_MAX_SIZE];
+    uint8_t buffer[coap_buf_size];
     int32_t packetlen = _udp->parsePacket();
 
     while (packetlen > 0) {
-        packetlen = _udp->read(buffer, packetlen >= COAP_BUF_MAX_SIZE ? COAP_BUF_MAX_SIZE : packetlen);
+        packetlen = _udp->read(buffer, packetlen >= coap_buf_size ? coap_buf_size : packetlen);
 
         CoapPacket packet;
 
@@ -344,3 +347,4 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const ch
 
     return this->sendPacket(packet, ip, port);
 }
+

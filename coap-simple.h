@@ -177,6 +177,7 @@ class Coap {
         CoapUri uri;
         CoapCallback resp;
         int _port;
+        int coap_buf_size;
 
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
@@ -184,7 +185,8 @@ class Coap {
 
     public:
         Coap(
-            UDP& udp
+            UDP& udp,
+            int coap_buf_size = COAP_BUF_MAX_SIZE
         );
         bool start();
         bool start(int port);
@@ -207,3 +209,4 @@ class Coap {
 };
 
 #endif
+
