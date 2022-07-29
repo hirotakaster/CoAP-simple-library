@@ -19,6 +19,16 @@ Coap::Coap(
 ) {
     this->_udp = &udp;
     this->coap_buf_size = coap_buf_size;
+    this->tx_buffer = new uint8_t[this->coap_buf_size];
+    this->rx_buffer = new uint8_t[this->coap_buf_size];
+}
+
+Coap::~Coap() {
+    if (this->tx_buffer != NULL)
+      delete[] this->tx_buffer;
+
+    if (this->rx_buffer != NULL)
+      delete[] this->rx_buffer;
 }
 
 bool Coap::start() {
@@ -36,8 +46,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip) {
 }
 
 uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
-    uint8_t buffer[coap_buf_size];
-    uint8_t *p = buffer;
+    uint8_t *p = this->tx_buffer;
     uint16_t running_delta = 0;
     uint16_t packetSize = 0;
 
@@ -48,7 +57,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
     *p++ = packet.code;
     *p++ = (packet.messageid >> 8);
     *p++ = (packet.messageid & 0xFF);
-    p = buffer + COAP_HEADER_SIZE;
+    p = this->tx_buffer + COAP_HEADER_SIZE;
     packetSize += 4;
 
     // make token
@@ -104,7 +113,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
     }
 
     _udp->beginPacket(ip, port);
-    _udp->write(buffer, packetSize);
+    _udp->write(this->tx_buffer, packetSize);
     _udp->endPacket();
 
     return packet.messageid;
@@ -220,29 +229,27 @@ int Coap::parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf
 }
 
 bool Coap::loop() {
-
-    uint8_t buffer[coap_buf_size];
     int32_t packetlen = _udp->parsePacket();
 
     while (packetlen > 0) {
-        packetlen = _udp->read(buffer, packetlen >= coap_buf_size ? coap_buf_size : packetlen);
+        packetlen = _udp->read(this->rx_buffer, packetlen >= coap_buf_size ? coap_buf_size : packetlen);
 
         CoapPacket packet;
 
         // parse coap packet header
-        if (packetlen < COAP_HEADER_SIZE || (((buffer[0] & 0xC0) >> 6) != 1)) {
+        if (packetlen < COAP_HEADER_SIZE || (((this->rx_buffer[0] & 0xC0) >> 6) != 1)) {
             packetlen = _udp->parsePacket();
             continue;
         }
 
-        packet.type = (buffer[0] & 0x30) >> 4;
-        packet.tokenlen = buffer[0] & 0x0F;
-        packet.code = buffer[1];
-        packet.messageid = 0xFF00 & (buffer[2] << 8);
-        packet.messageid |= 0x00FF & buffer[3];
+        packet.type = (this->rx_buffer[0] & 0x30) >> 4;
+        packet.tokenlen = this->rx_buffer[0] & 0x0F;
+        packet.code = this->rx_buffer[1];
+        packet.messageid = 0xFF00 & (this->rx_buffer[2] << 8);
+        packet.messageid |= 0x00FF & this->rx_buffer[3];
 
         if (packet.tokenlen == 0)  packet.token = NULL;
-        else if (packet.tokenlen <= 8)  packet.token = buffer + 4;
+        else if (packet.tokenlen <= 8)  packet.token = this->rx_buffer + 4;
         else {
             packetlen = _udp->parsePacket();
             continue;
@@ -252,8 +259,8 @@ bool Coap::loop() {
         if (COAP_HEADER_SIZE + packet.tokenlen < packetlen) {
             int optionIndex = 0;
             uint16_t delta = 0;
-            uint8_t *end = buffer + packetlen;
-            uint8_t *p = buffer + COAP_HEADER_SIZE + packet.tokenlen;
+            uint8_t *end = this->rx_buffer + packetlen;
+            uint8_t *p = this->rx_buffer + COAP_HEADER_SIZE + packet.tokenlen;
             while(optionIndex < COAP_MAX_OPTION_NUM && *p != 0xFF && p < end) {
                 //packet.options[optionIndex];
                 if (0 != parseOption(&packet.options[optionIndex], &delta, &p, end-p))
@@ -347,4 +354,3 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const ch
 
     return this->sendPacket(packet, ip, port);
 }
-

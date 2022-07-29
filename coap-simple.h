@@ -178,6 +178,8 @@ class Coap {
         CoapCallback resp;
         int _port;
         int coap_buf_size;
+        uint8_t *tx_buffer = NULL;
+        uint8_t *rx_buffer = NULL;
 
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
@@ -188,6 +190,7 @@ class Coap {
             UDP& udp,
             int coap_buf_size = COAP_BUF_MAX_SIZE
         );
+        ~Coap();
         bool start();
         bool start(int port);
         void response(CoapCallback c) { resp = c; }
@@ -209,4 +212,3 @@ class Coap {
 };
 
 #endif
-
