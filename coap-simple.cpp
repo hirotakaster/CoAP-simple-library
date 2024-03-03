@@ -158,18 +158,42 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
     sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
 
+    /*
+        Add Query Support
+        Author: @YelloooBlue
+    */
+
     // parse url
     size_t idx = 0;
+    bool hasQuery = false;
     for (size_t i = 0; i < strlen(url); i++) {
+        // The reserved characters "/"  "?"  "&"
         if (url[i] == '/') {
-			packet.addOption(COAP_URI_PATH, i-idx, (uint8_t *)(url + idx));
+            packet.addOption(COAP_URI_PATH, i-idx, (uint8_t *)(url + idx)); //one URI_PATH (terminated by '/')
+            idx = i + 1;
+        } else if (url[i] == '?' && !hasQuery) {
+            packet.addOption(COAP_URI_PATH, i-idx, (uint8_t *)(url + idx)); //the last URI_PATH (between / and ?)
+            hasQuery = true; //now start to parse the query
+            idx = i + 1;
+        } else if (url[i] == '&' && hasQuery) {
+            packet.addOption(COAP_URI_QUERY, i-idx, (uint8_t *)(url + idx)); //one URI_QUERY (terminated by '&')
             idx = i + 1;
         }
     }
 
     if (idx <= strlen(url)) {
-		packet.addOption(COAP_URI_PATH, strlen(url)-idx, (uint8_t *)(url + idx));
+        if (hasQuery) {
+            packet.addOption(COAP_URI_QUERY, strlen(url)-idx, (uint8_t *)(url + idx)); //the last URI_QUERY (between &/? and the end)
+        } else {
+            packet.addOption(COAP_URI_PATH, strlen(url)-idx, (uint8_t *)(url + idx)); //the last URI_PATH (between / and the end)
+        }
     }
+    
+
+    /*
+        Adding query support ends
+        Date: 2024.03.03
+    */
 
 	// if Content-Format option
 	uint8_t optionBuffer[2] {0};
