@@ -39,3 +39,11 @@ gcc -o coap-client ./examples/client.c ./examples/coap_list.c -I./include -I. -L
 
 ## Particle Photon, Core compatible
 Check <a href="https://github.com/hirotakaster/CoAP">this</a> version of the library for Particle Photon, Core compatibility.
+
+## DTLS/ESP32 Support (2025 Update)
+
+- Added DTLS (CoAP over DTLS) client support using mbedTLS for ESP32 only.
+- New class: `DtlsUdp` (in `DtlsUdp.h`/`DtlsUdp.cpp`) provides a UDP-like interface for DTLS, leveraging mbedTLS (available only on ESP32 Arduino core).
+- Example: `examples/dtls_test/dtls_test.ino` demonstrates a DTLS CoAP client communicating with a libcoap server using Let's Encrypt Root CA.
+- **Note:** DTLS/mbedTLS features are only available for ESP32. The code is conditionally compiled and will not be included for other platforms.
+- See code comments for details on platform and dependency restrictions.
