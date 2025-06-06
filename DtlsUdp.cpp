@@ -1,7 +1,7 @@
 #if defined(ESP32)
 // NOTE: This class is only available for ESP32 because it depends on mbedtls, which is provided by the ESP32 Arduino core.
 // DtlsUdp.cpp
-// mbedTLS DTLS wrapper class skeleton implementation for Arduino
+// mbedTLS DTLS wrapper class skeleton implementation for Arduino (WiFiUDP base)
 #include "DtlsUdp.h"
 
 DtlsUdp::DtlsUdp() : connected(false) {
@@ -28,7 +28,7 @@ DtlsUdp::~DtlsUdp() {
 }
 
 uint8_t DtlsUdp::begin(uint16_t port) {
-    // For DTLS: No need to initialize UDP socket
+    // For DTLS: No need to initialize UDP socket (WiFiUDP base)
     return 1;
 }
 
@@ -43,6 +43,25 @@ bool DtlsUdp::connect(IPAddress ip, int port) {
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
     if (mbedtls_ssl_setup(&ssl, &conf) != 0) return false;
     mbedtls_ssl_set_bio(&ssl, &net_ctx, mbedtls_net_send, mbedtls_net_recv, NULL);
+    // DTLS handshake
+    int ret;
+    do {
+        ret = mbedtls_ssl_handshake(&ssl);
+    } while (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE);
+    connected = (ret == 0);
+    return connected;
+}
+
+bool DtlsUdp::connect(const char* host, int port) {
+    char portstr[8];
+    snprintf(portstr, sizeof(portstr), "%d", port);
+    if (mbedtls_net_connect(&net_ctx, host, portstr, MBEDTLS_NET_PROTO_UDP) != 0) return false;
+    if (mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) != 0) return false;
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
+    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+    if (mbedtls_ssl_setup(&ssl, &conf) != 0) return false;
+    mbedtls_ssl_set_bio(&ssl, &net_ctx, mbedtls_net_send, mbedtls_net_recv, NULL);
+    mbedtls_ssl_set_hostname(&ssl, host);
     // DTLS handshake
     int ret;
     do {

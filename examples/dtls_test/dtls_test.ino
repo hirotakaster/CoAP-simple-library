@@ -1,16 +1,15 @@
+#if defined(ESP32)
 // NOTE: This sketch is only available for ESP32 because it depends on mbedtls, which is provided by the ESP32 Arduino core.
 // dtls_test.ino
-// DTLS CoAP client auto test sketch
+// DTLS CoAP client auto test sketch (WiFiUDP base)
 // Checks GET response from libcoap server
-#include <SPI.h>
-#include <Dhcp.h>
-#include <Dns.h>
-#include <Ethernet.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
 #include <coap-simple.h>
 #include "DtlsUdp.h"
 
-byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02 };
-IPAddress dev_ip(10,10,10,10); // Change as needed
+const char* ssid     = "your-ssid";
+const char* password = "your-password";
 
 const int LED_PIN = 13;
 DtlsUdp dtlsUdp;
@@ -64,12 +63,20 @@ void setup() {
   Serial.begin(9600);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  Ethernet.begin(mac, dev_ip);
-  Serial.print("My IP address: ");
-  Serial.println(Ethernet.localIP());
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
   dtlsUdp.begin(0);
   dtlsUdp.setRootCA(lets_encrypt_root_pem); // Set Root CA
-  dtlsUdp.connect(IPAddress(10,10,10,20), 5684);
+  const char* server_host = "your.server.example.com"; // <-- Set your DTLS server hostname (FQDN)
+  int server_port = 5684;
+  dtlsUdp.connect(server_host, server_port);
   Serial.println("Setup Response Callback");
   coap.response(callback_response);
   coap.start();
@@ -77,7 +84,8 @@ void setup() {
 
 void loop() {
   Serial.println("Send DTLS CoAP Test Request");
-  int msgid = coap.get(IPAddress(10,10,10,20), 5684, "test");
+  // int msgid = coap.get(server_host, server_port, "test"); // if Coap supports hostname
+  int msgid = coap.get(WiFi.localIP(), 5684, "test"); // fallback: use IP
   delay(2000);
   coap.loop();
   if (testPassed) {
@@ -87,3 +95,4 @@ void loop() {
   }
   delay(3000);
 }
+#endif // ESP32

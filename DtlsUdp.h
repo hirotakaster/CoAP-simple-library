@@ -1,6 +1,7 @@
 #if defined(ESP32)
+// NOTE: This class is only available for ESP32 because it depends on mbedtls, which is provided by the ESP32 Arduino core.
 // DtlsUdp.h
-// mbedTLS DTLS wrapper class skeleton for Arduino
+// mbedTLS DTLS wrapper class skeleton for Arduino (WiFiUDP base)
 // Example implementation: UDP-compatible API, DTLS communication using mbedTLS
 
 #ifndef __DTLS_UDP_H__
@@ -8,6 +9,7 @@
 
 #include <Arduino.h>
 #include <IPAddress.h>
+#include <WiFiUdp.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/entropy.h>
@@ -15,13 +17,11 @@
 #include <mbedtls/error.h>
 #include "Udp.h"
 
-// NOTE: This class is only available for ESP32 because it depends on mbedtls, which is provided by the ESP32 Arduino core.
-
-class DtlsUdp : public UDP {
+class DtlsUdp : public WiFiUDP {
 public:
     DtlsUdp();
     ~DtlsUdp();
-    // UDPインターフェースの実装
+    // UDP interface implementation
     uint8_t begin(uint16_t port) override;
     void stop() override;
     int beginPacket(IPAddress ip, uint16_t port) override;
@@ -38,10 +38,11 @@ public:
     void flush() override;
     IPAddress remoteIP() override;
     uint16_t remotePort() override;
-    // DTLS独自
+    // DTLS specific
     bool connect(IPAddress ip, int port);
+    bool connect(const char* host, int port);
     void end();
-    // --- 証明書/鍵の設定用API ---
+    // --- Certificate/key setting API ---
     bool setRootCA(const char* ca_pem);
     bool setClientCert(const char* cert_pem, const char* key_pem);
 private:
@@ -59,5 +60,4 @@ private:
 };
 
 #endif // __DTLS_UDP_H__
-
 #endif // ESP32
