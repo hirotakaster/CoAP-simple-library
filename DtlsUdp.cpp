@@ -37,16 +37,33 @@ bool DtlsUdp::connect(IPAddress ip, int port) {
     sprintf(ipstr, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     char portstr[8];
     snprintf(portstr, sizeof(portstr), "%d", port);
-    if (mbedtls_net_connect(&net_ctx, ipstr, portstr, MBEDTLS_NET_PROTO_UDP) != 0) return false;
-    if (mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) != 0) return false;
+    int ret;
+    ret = mbedtls_net_connect(&net_ctx, ipstr, portstr, MBEDTLS_NET_PROTO_UDP);
+    Serial.print("mbedtls_net_connect returned: ");
+    Serial.println(ret);
+    if (ret != 0) return false;
+    ret = mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT);
+    Serial.print("mbedtls_ssl_config_defaults returned: ");
+    Serial.println(ret);
+    if (ret != 0) return false;
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
-    if (mbedtls_ssl_setup(&ssl, &conf) != 0) return false;
+    ret = mbedtls_ssl_setup(&ssl, &conf);
+    Serial.print("mbedtls_ssl_setup returned: ");
+    Serial.println(ret);
+    if (ret != 0) return false;
     mbedtls_ssl_set_bio(&ssl, &net_ctx, mbedtls_net_send, mbedtls_net_recv, NULL);
     // DTLS handshake
-    int ret;
     do {
         ret = mbedtls_ssl_handshake(&ssl);
+        Serial.print("mbedtls_ssl_handshake returned: ");
+        Serial.println(ret);
+        if (ret != 0 && ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            char errbuf[128];
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
+            Serial.print("mbedtls_ssl_handshake error: ");
+            Serial.println(errbuf);
+        }
     } while (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE);
     connected = (ret == 0);
     return connected;
