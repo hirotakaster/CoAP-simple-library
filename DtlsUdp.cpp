@@ -142,4 +142,4 @@ bool DtlsUdp::setClientCert(const char* cert_pem, const char* key_pem) {
     mbedtls_ssl_conf_own_cert(&conf, &client_cert, &client_key);
     return true;
 }
-#endif // ARDUINO_ARCH_ESP32
+#endif // ESP32
