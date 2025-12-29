@@ -29,7 +29,7 @@ void callback_light(CoapPacket &packet, IPAddress ip, int port) {
   // send response
   char p[packet.payloadlen + 1];
   memcpy(p, packet.payload, packet.payloadlen);
-  p[packet.payloadlen] = "\0";
+  p[packet.payloadlen] = '\0';
   
   String message(p);
 
@@ -53,7 +53,7 @@ void callback_response(CoapPacket &packet, IPAddress ip, int port) {
   
   char p[packet.payloadlen + 1];
   memcpy(p, packet.payload, packet.payloadlen);
-  p[packet.payloadlen] = "\0";
+  p[packet.payloadlen] = '\0';
   
   Serial.println(p);
 }
