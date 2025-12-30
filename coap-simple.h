@@ -180,21 +180,26 @@ class Coap {
         CoapCallback resp;
         int _port;
         int coap_buf_size;
+        int resp_buf_size;
         uint8_t *tx_buffer = NULL;
+        uint8_t *resp_buffer = NULL;
         uint8_t *rx_buffer = NULL;
 
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
         uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
+        uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port, uint8_t *buffer, size_t buffer_size);
         int parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf, size_t buflen);
 
     public:
         Coap(
             UDP& udp,
-            int coap_buf_size = COAP_BUF_MAX_SIZE
+            int coap_buf_size = COAP_BUF_MAX_SIZE,
+            int resp_buf_size = -1
         );
         ~Coap();
         bool start();
         bool start(int port);
+        void setResponseBufferSize(int size);
         void response(CoapCallback c) { resp = c; }
 
         void server(CoapCallback c, String url) { uri.add(c, url); }
