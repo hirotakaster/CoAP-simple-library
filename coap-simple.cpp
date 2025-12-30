@@ -323,7 +323,7 @@ bool Coap::loop() {
 
             if (!uri.find(url)) {
                 sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
-                        COAP_NOT_FOUNT, COAP_NONE, NULL, 0);
+                        COAP_NOT_FOUND, COAP_NONE, NULL, 0);
             } else {
                 uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
             }
