@@ -49,12 +49,16 @@ bool CoapPacket::getObserveValue(uint32_t &value)
 
 Coap::Coap(
     UDP &udp,
-    int coap_buf_size /* default value is COAP_BUF_MAX_SIZE */
+    int coap_buf_size /* default value is COAP_BUF_MAX_SIZE */,
+    int resp_buf_size /* default: same as coap_buf_size */
 )
 {
     this->_udp = &udp;
     this->coap_buf_size = coap_buf_size;
+    if (resp_buf_size < 0) resp_buf_size = coap_buf_size;
+    this->resp_buf_size = resp_buf_size;
     this->tx_buffer = new uint8_t[this->coap_buf_size];
+    this->resp_buffer = new uint8_t[this->resp_buf_size];
     this->rx_buffer = new uint8_t[this->coap_buf_size];
 }
 
@@ -62,6 +66,9 @@ Coap::~Coap()
 {
     if (this->tx_buffer != NULL)
         delete[] this->tx_buffer;
+
+        if (this->resp_buffer != NULL)
+            delete[] this->resp_buffer;
 
     if (this->rx_buffer != NULL)
         delete[] this->rx_buffer;
@@ -79,14 +86,16 @@ bool Coap::start(int port)
     return true;
 }
 
-uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip)
-{
-    return this->sendPacket(packet, ip, COAP_DEFAULT_PORT);
+uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip) {
+    return this->sendPacket(packet, ip, COAP_DEFAULT_PORT, this->tx_buffer, this->coap_buf_size);
 }
 
-uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
-{
-    uint8_t *p = this->tx_buffer;
+uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port) {
+    return this->sendPacket(packet, ip, port, this->tx_buffer, this->coap_buf_size);
+}
+
+uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port, uint8_t *buffer, size_t buffer_size) {
+    uint8_t *p = buffer;
     uint16_t running_delta = 0;
     uint16_t packetSize = 0;
 
@@ -97,12 +106,12 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
     *p++ = packet.code;
     *p++ = (packet.messageid >> 8);
     *p++ = (packet.messageid & 0xFF);
-    p = this->tx_buffer + COAP_HEADER_SIZE;
+    p = buffer + COAP_HEADER_SIZE;
     packetSize += 4;
 
     // make token
-    if (packet.token != NULL && packet.tokenlen <= 0x0F)
-    {
+    if (packet.token != NULL && packet.tokenlen <= 0x0F) {
+        if (packetSize + packet.tokenlen > buffer_size) return 0;
         memcpy(p, packet.token, packet.tokenlen);
         p += packet.tokenlen;
         packetSize += packet.tokenlen;
@@ -114,8 +123,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
         uint32_t optdelta;
         uint8_t len, delta;
 
-        if (packetSize + 5 + packet.options[i].length >= coap_buf_size)
-        {
+        if (packetSize + 5 + packet.options[i].length >= buffer_size) {
             return 0;
         }
         optdelta = packet.options[i].number - running_delta;
@@ -153,10 +161,8 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
     }
 
     // make payload
-    if (packet.payloadlen > 0)
-    {
-        if ((packetSize + 1 + packet.payloadlen) >= coap_buf_size)
-        {
+    if (packet.payloadlen > 0) {
+        if ((packetSize + 1 + packet.payloadlen) >= buffer_size) {
             return 0;
         }
         *p++ = 0xFF;
@@ -165,7 +171,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
     }
 
     _udp->beginPacket(ip, port);
-    _udp->write(this->tx_buffer, packetSize);
+    _udp->write(buffer, packetSize);
     _udp->endPacket();
 
     return packet.messageid;
@@ -211,7 +217,7 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
     packet.optionnum = 0;
     packet.messageid = messageid;
 
-    // use URI_HOST UIR_PATH
+    // use URI_HOST URI_PATH
     char ipaddress[16] = "";
     sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
@@ -480,7 +486,15 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const ch
     optionBuffer[1] = ((uint16_t)type & 0x00FF);
     packet.addOption(COAP_CONTENT_FORMAT, 2, optionBuffer);
 
-    return this->sendPacket(packet, ip, port);
+    return this->sendPacket(packet, ip, port, this->resp_buffer, this->resp_buf_size);
+}
+
+void Coap::setResponseBufferSize(int size) {
+    if (size <= 0) return;
+    if (size == this->resp_buf_size) return;
+    if (this->resp_buffer != NULL) delete[] this->resp_buffer;
+    this->resp_buf_size = size;
+    this->resp_buffer = new uint8_t[this->resp_buf_size];
 }
 
 static uint8_t encodeUintOption(uint32_t value, uint8_t out[3])

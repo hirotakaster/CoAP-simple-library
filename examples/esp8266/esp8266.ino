@@ -25,6 +25,7 @@ bool LEDSTATE;
 // CoAP server endpoint URL
 void callback_light(CoapPacket &packet, IPAddress ip, int port) {
   Serial.println("[Light] ON/OFF");
+  coap.setResponseBufferSize(4096); // Dynamic response buffer size setting
   
   // send response
   char p[packet.payloadlen + 1];
@@ -50,6 +51,7 @@ void callback_light(CoapPacket &packet, IPAddress ip, int port) {
 // CoAP client response callback
 void callback_response(CoapPacket &packet, IPAddress ip, int port) {
   Serial.println("[Coap Response got]");
+  
   
   char p[packet.payloadlen + 1];
   memcpy(p, packet.payload, packet.payloadlen);
