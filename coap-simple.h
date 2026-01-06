@@ -198,10 +198,10 @@ class Observer
 {
 public:
     IPAddress ip;
-    int port;
+    int port = 0;
     uint8_t token[8];
-    int token_len;
-    uint16_t counter; // Will be used as message ID.
+    int token_len = 0;
+    uint16_t counter = 0; // Will be used as message ID.
 
     /**
      * @brief Construct a new Observer object.
