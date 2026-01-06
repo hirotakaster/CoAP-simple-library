@@ -20,7 +20,7 @@ Coap::Coap(
 ) {
     this->_udp = &udp;
     this->coap_buf_size = coap_buf_size;
-    if (resp_buf_size < 0) resp_buf_size = coap_buf_size;
+    if (resp_buf_size <= 0) resp_buf_size = coap_buf_size;
     this->resp_buf_size = resp_buf_size;
     this->tx_buffer = new uint8_t[this->coap_buf_size];
     this->resp_buffer = new uint8_t[this->resp_buf_size];
@@ -297,7 +297,7 @@ bool Coap::loop() {
             uint16_t delta = 0;
             uint8_t *end = this->rx_buffer + packetlen;
             uint8_t *p = this->rx_buffer + COAP_HEADER_SIZE + packet.tokenlen;
-            while(optionIndex < COAP_MAX_OPTION_NUM && *p != 0xFF && p < end) {
+            while(optionIndex < COAP_MAX_OPTION_NUM && p < end && *p != 0xFF) {
                 //packet.options[optionIndex];
                 if (0 != parseOption(&packet.options[optionIndex], &delta, &p, end-p))
                     return false;
@@ -305,7 +305,7 @@ bool Coap::loop() {
             }
             packet.optionnum = optionIndex;
 
-            if (p+1 < end && *p == 0xFF) {
+            if (p < end && *p == 0xFF) {
                 packet.payload = p+1;
                 packet.payloadlen = end-(p+1);
             } else {
@@ -392,9 +392,33 @@ uint16_t Coap::sendResponse(IPAddress ip, int port, uint16_t messageid, const ch
 }
 
 void Coap::setResponseBufferSize(int size) {
-    if (size <= 0) return;
-    if (size == this->resp_buf_size) return;
-    if (this->resp_buffer != NULL) delete[] this->resp_buffer;
+    if (size <= 0)
+        return;
+    if (size == this->resp_buf_size)
+        return;
+
+    uint8_t *new_buffer = NULL;
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+    try {
+        new_buffer = new uint8_t[size];
+    } catch (...) {
+        // Allocation failed; keep current buffer unchanged.
+        return;
+    }
+#else
+    // Most Arduino cores build with exceptions disabled, where operator new
+    // typically returns NULL on allocation failure.
+    new_buffer = new uint8_t[size];
+    if (new_buffer == NULL) {
+        // Allocation failed; keep current buffer unchanged.
+        return;
+    }
+#endif
+
+    uint8_t *old_buffer = this->resp_buffer;
+    this->resp_buffer = new_buffer;
     this->resp_buf_size = size;
-    this->resp_buffer = new uint8_t[this->resp_buf_size];
+
+    if (old_buffer != NULL)
+        delete[] old_buffer;
 }

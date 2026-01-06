@@ -37,5 +37,14 @@ gcc -o coap-client ./examples/client.c ./examples/coap_list.c -I./include -I. -L
 # next start Arduino and check the request/response.
 ```
 
+## Response buffer size (setResponseBufferSize)
+Some environments may need a larger response buffer than `COAP_BUF_MAX_SIZE`. You can change the response buffer size via `setResponseBufferSize()`.
+
+Notes:
+- Keep the default small unless needed.
+- Call `setResponseBufferSize()` once during `setup()` (avoid repeated allocations and heap fragmentation).
+- Recommended range is 1152..1472 bytes to reduce UDP/IP fragmentation.
+- For larger payloads, CoAP Blockwise Transfer is needed.
+
 ## Particle Photon, Core compatible
 Check <a href="https://github.com/hirotakaster/CoAP">this</a> version of the library for Particle Photon, Core compatibility.

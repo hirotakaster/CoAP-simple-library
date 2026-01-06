@@ -199,6 +199,9 @@ class Coap {
         ~Coap();
         bool start();
         bool start(int port);
+        // Resize the response buffer used by sendResponse().
+        // Recommended: call once in setup() and keep sizes MTU-friendly (e.g. 1152..1472).
+        // Larger payloads typically require CoAP Blockwise Transfer.
         void setResponseBufferSize(int size);
         void response(CoapCallback c) { resp = c; }
 
