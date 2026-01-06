@@ -35,10 +35,6 @@
 EthernetUDP Udp;
 Coap coap(Udp);
 
-// Observer state.
-// NOTE: Only one observer for now. NULL means not set.
-Observer *observer = NULL;
-
 // Using a sequential identifier. IP and MAC will be based on this.
 #define DEVICE_ID 1
 
@@ -46,7 +42,7 @@ byte mac[] = {0xBE, 0xEF, 0xBE, 0xEF, 0x00, DEVICE_ID}; // Define the MAC addres
 IPAddress ip(192, 168, 0, DEVICE_ID);                   // This device IP.
 
 // Declarations.
-void endpoint_echo(CoapPacket &packet, IPAddress ip, int port);
+void endpoint_subscribe(CoapPacket &packet, IPAddress ip, int port);
 void response_callback(CoapPacket &packet, IPAddress ip, int port);
 
 void setup()
@@ -80,22 +76,38 @@ void setup()
 
 void endpoint_subscribe(CoapPacket &packet, IPAddress ip, int port)
 {
-    if (packet.isObserve())
+    uint32_t observeValue = 0;
+    if (!packet.getObserveValue(observeValue))
     {
-        observer = new Observer(ip, port, packet.token, packet.tokenlen);
+        coap.sendResponse(ip, port, packet.messageid, "invalid", strlen("invalid"), COAP_BAD_REQUEST, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+        SERIAL_PRINTLN("Invalid subscription request");
+        return;
+    }
 
-        // Initial response.
-        // NOTE: sendResponse always sends a CONFIRMABLE message (ACK required).
-        // The client expects ACK or it will retry.
-        // NOTE: Periodic responses must be sent from the main loop().
-        coap.sendResponse(ip, port, packet.messageid, "subscribed");
+    // Observe=0 register, Observe=1 deregister.
+    if (observeValue == 0)
+    {
+        if (!coap.addObserver("subscribe", ip, port, packet.token, packet.tokenlen))
+        {
+            coap.sendResponse(ip, port, packet.messageid, "busy", strlen("busy"), COAP_SERVICE_UNAVAILABLE, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+            SERIAL_PRINTLN("Observer table full; refused");
+            return;
+        }
+
+        // Initial observe response includes Observe option and echoes token.
+        coap.sendObserveResponse(ip, port, packet.messageid, "subscribed", strlen("subscribed"), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen, 0);
         SERIAL_PRINTLN("Subscribed!");
+    }
+    else if (observeValue == 1)
+    {
+        coap.removeObserver("subscribe", ip, port, packet.token, packet.tokenlen);
+        coap.sendResponse(ip, port, packet.messageid, "unsubscribed", strlen("unsubscribed"), COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+        SERIAL_PRINTLN("Unsubscribed!");
     }
     else
     {
-        // Invalid!
-        coap.sendResponse(ip, port, packet.messageid, "invalid");
-        SERIAL_PRINTLN("Invalid subscription request");
+        coap.sendResponse(ip, port, packet.messageid, "invalid", strlen("invalid"), COAP_BAD_OPTION, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+        SERIAL_PRINTLN("Invalid Observe value");
     }
 }
 
@@ -109,14 +121,12 @@ void loop()
 // Demo notification with gibberish data.
 void send_notification()
 {
-    if (observer != NULL)
+    char payload[6]; // Max 5 digits for uint16_t + 1 for null terminator '\0'
+    sprintf(payload, "%u", 42);
+    int payload_len = strlen(payload);
+
+    if (coap.notify("subscribe", payload, payload_len, COAP_APPLICATION_OCTET_STREAM) > 0)
     {
-        char payload[6]; // Max 5 digits for uint16_t + 1 for null terminator '\0'
-        sprintf(payload, "%u", 42);
-        int payload_len = strlen(payload);
-
         SERIAL_PRINTLN("Notified!");
-
-        coap.notify(observer, payload, payload_len, COAP_APPLICATION_OCTET_STREAM);
     }
 }

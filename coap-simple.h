@@ -41,6 +41,15 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef COAP_BUF_MAX_SIZE
 #define COAP_BUF_MAX_SIZE 128
 #endif
+#ifndef COAP_MAX_OBSERVERS
+#define COAP_MAX_OBSERVERS 4
+#endif
+#ifndef COAP_OBSERVER_LEASE_MS
+#define COAP_OBSERVER_LEASE_MS 60000UL
+#endif
+#ifndef COAP_MAX_OBSERVE_URL_LEN
+#define COAP_MAX_OBSERVE_URL_LEN 32
+#endif
 #define COAP_DEFAULT_PORT 5683
 
 #define RESPONSE_CODE(class, detail) ((class << 5) | (detail))
@@ -95,6 +104,7 @@ typedef enum
     COAP_URI_HOST = 3,
     COAP_E_TAG = 4,
     COAP_IF_NONE_MATCH = 5,
+    COAP_OBSERVE = 6,
     COAP_URI_PORT = 7,
     COAP_LOCATION_PATH = 8,
     COAP_URI_PATH = 11,
@@ -147,6 +157,13 @@ public:
      * @return true if the packet is an Observe request, false otherwise.
      */
     bool isObserve();
+
+    /**
+     * @brief Reads Observe option value (RFC 7641).
+     * @param value Output observe value.
+     * @return true if Observe option is present and valid.
+     */
+    bool getObserveValue(uint32_t &value);
 };
 
 #if defined(ESP8266)
@@ -211,7 +228,7 @@ public:
     int port = 0;
     uint8_t token[8];
     int token_len = 0;
-    uint16_t counter = 0; // Will be used as message ID.
+    uint16_t counter = 0; // Used as a simple per-observer notification sequence.
 
     /**
      * @brief Construct a new Observer object.
@@ -229,6 +246,19 @@ private:
     int coap_buf_size;
     uint8_t *tx_buffer = NULL;
     uint8_t *rx_buffer = NULL;
+
+    struct ObserveEntry
+    {
+        bool in_use = false;
+        IPAddress ip;
+        uint16_t port = 0;
+        uint8_t token[8] = {0};
+        uint8_t tokenlen = 0;
+        uint32_t observe_seq = 0;
+        unsigned long last_seen_ms = 0;
+        char url[COAP_MAX_OBSERVE_URL_LEN] = {0};
+    };
+    ObserveEntry observers[COAP_MAX_OBSERVERS];
 
     uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
     uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
@@ -249,12 +279,18 @@ public:
     uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen);
     uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
 
+    uint16_t sendObserveResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen, uint32_t observe_seq);
+
     /**
      * @brief Notify the observer with the given payload.
      *
      * It sends a non-confirmable notification according to the CoAP observe specifications RFC-7641.
      */
     uint16_t notify(Observer *observer, const char *payload, int payload_len, COAP_CONTENT_TYPE type);
+    int notify(const char *url, const char *payload, int payload_len, COAP_CONTENT_TYPE type);
+
+    bool addObserver(const char *url, IPAddress ip, int port, const uint8_t *token, uint8_t tokenlen);
+    bool removeObserver(const char *url, IPAddress ip, int port, const uint8_t *token, uint8_t tokenlen);
 
     uint16_t get(IPAddress ip, int port, const char *url);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
