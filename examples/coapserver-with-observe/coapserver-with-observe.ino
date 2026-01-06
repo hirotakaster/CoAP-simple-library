@@ -127,7 +127,7 @@ void send_notification()
     if (observer != NULL)
     {
         char payload[6]; // Max 5 digits for uint16_t + 1 for null terminator '\0'
-        sprintf(payload, "%u", observer->counter);
+        sprintf(payload, "%u", 42);
         int payload_len = strlen(payload);
 
         SERIAL_PRINTLN("Notified!");
