@@ -12,10 +12,6 @@
 // Set to 1 to enable Serial output for debugging. Set to 0 to disable all Serial calls (no-ops).
 #define ENABLE_SERIAL_DEBUG 1
 
-#define LED LED_BUILTIN // Defaults to LEDG (green).
-#define ON HIGH         // Some devices have inverted logic.
-#define OFF LOW
-
 #if ENABLE_SERIAL_DEBUG
 #define SERIAL_BEGIN(baud) Serial.begin(baud)
 #define SERIAL_WHILE_WAIT \
@@ -50,15 +46,11 @@ byte mac[] = {0xBE, 0xEF, 0xBE, 0xEF, 0x00, DEVICE_ID}; // Define the MAC addres
 IPAddress ip(192, 168, 0, DEVICE_ID);                   // This device IP.
 
 // Declarations.
-void panic(char msg[]);
 void endpoint_echo(CoapPacket &packet, IPAddress ip, int port);
 void response_callback(CoapPacket &packet, IPAddress ip, int port);
 
 void setup()
 {
-    // Set the digital pin as output (our heartbeat).
-    pinMode(LED, OUTPUT);
-    digitalWrite(LED, OFF);
 
     // Initialize serial and wait for port to open.
     SERIAL_BEGIN(115200);
@@ -75,12 +67,6 @@ void setup()
 
     SERIAL_PRINTLN("Setup echo endpoint");
     coap.server(endpoint_subscribe, "subscribe");
-    // Add multiple endpoins here.
-
-    // client response callback.
-    // this endpoint is single callback.
-    //  SERIAL_PRINTLN("Setup response callback");
-    //  coap.response(callback_response);
 
     // start coap server/client
     coap.start();
@@ -90,7 +76,6 @@ void setup()
     SERIAL_PRINTLN(Ethernet.localIP());
 
     SERIAL_PRINTLN("Initialisation completed");
-    digitalWrite(LED, ON); // Leave LED ON for correct initialisation.
 }
 
 void endpoint_subscribe(CoapPacket &packet, IPAddress ip, int port)
