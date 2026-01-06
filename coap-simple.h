@@ -142,6 +142,10 @@ public:
 
     void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
 
+    /**
+     * @brief Checks if the packet is an Observe request.
+     * @return true if the packet is an Observe request, false otherwise.
+     */
     bool is_observe();
 };
 
@@ -248,7 +252,7 @@ public:
     /**
      * @brief Notify the observer with the given payload.
      *
-     * It sends a non-confirmable response according to the CoAP observe specifications.
+     * It sends a non-confirmable notification according to the CoAP observe specifications RFC-7641.
      */
     uint16_t notify(Observer *observer, const char *payload, int payload_len, COAP_CONTENT_TYPE type);
 
