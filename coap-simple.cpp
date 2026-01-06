@@ -11,6 +11,21 @@ void CoapPacket::addOption(uint8_t number, uint8_t length, uint8_t *opt_payload)
 
     ++optionnum;
 }
+/**
+ * @brief Check if the CoAP packet has an Observe option.
+ * @return true if the Observe option is present, false otherwise.
+ */
+bool CoapPacket::is_observe()
+{
+    for (int i = 0; i < optionnum; i++)
+    {
+        if (options[i].number == 6) // Observe option number is 6.
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 Coap::Coap(
     UDP &udp,

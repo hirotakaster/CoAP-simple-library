@@ -1,7 +1,11 @@
 /*
-CoAP library for Arduino.
+CoAP library for Arduino with Observe functionality.
+
 This software is released under the MIT License.
 Copyright (c) 2014 Hirotaka Niisato
+
+Modified by Pasquale Lafiosca (2026).
+
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including
@@ -137,6 +141,8 @@ public:
     CoapOption options[COAP_MAX_OPTION_NUM];
 
     void addOption(uint8_t number, uint8_t length, uint8_t *opt_payload);
+
+    bool is_observe();
 };
 
 #if defined(ESP8266)
