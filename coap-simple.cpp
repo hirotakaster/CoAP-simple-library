@@ -356,7 +356,7 @@ bool Coap::loop()
             uint16_t delta = 0;
             uint8_t *end = this->rx_buffer + packetlen;
             uint8_t *p = this->rx_buffer + COAP_HEADER_SIZE + packet.tokenlen;
-            while (optionIndex < COAP_MAX_OPTION_NUM && *p != 0xFF && p < end)
+            while (optionIndex < COAP_MAX_OPTION_NUM && p < end && *p != 0xFF)
             {
                 // packet.options[optionIndex];
                 if (0 != parseOption(&packet.options[optionIndex], &delta, &p, end - p))
@@ -364,8 +364,7 @@ bool Coap::loop()
                 optionIndex++;
             }
             packet.optionnum = optionIndex;
-
-            if (p + 1 < end && *p == 0xFF)
+            if (p < end && *p == 0xFF)
             {
                 packet.payload = p + 1;
                 packet.payloadlen = end - (p + 1);
