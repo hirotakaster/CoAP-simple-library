@@ -455,23 +455,23 @@ Observer::Observer(IPAddress ip, int port, const uint8_t *token, int token_len)
     memcpy(this->token, token, token_len);
 }
 
-Observer::notify(const char *payload, int payload_len, COAP_CONTENT_TYPE type)
+uint16_t Coap::notify(Observer *observer, const char *payload, int payload_len, COAP_CONTENT_TYPE type)
 {
     CoapPacket packet;
 
     packet.type = COAP_NONCON; // Notifications are non-confirmable.
     packet.code = COAP_CONTENT;
-    packet.token = this->token;
-    packet.tokenlen = this->token_len;
+    packet.token = observer->token;
+    packet.tokenlen = observer->token_len;
     packet.payload = (uint8_t *)payload;
-    packet.payloadlen = payloadlen;
+    packet.payloadlen = payload_len;
     packet.optionnum = 0;
-    packet.messageid = ++this->counter;
+    packet.messageid = ++observer->counter;
 
     uint8_t optionBuffer[2] = {0};
     optionBuffer[0] = ((uint16_t)type & 0xFF00) >> 8;
     optionBuffer[1] = ((uint16_t)type & 0x00FF);
     packet.addOption(COAP_CONTENT_FORMAT, 2, optionBuffer);
 
-    return this->sendPacket(packet, ip, port);
+    return this->sendPacket(packet, observer->ip, observer->port);
 }

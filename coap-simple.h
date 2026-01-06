@@ -191,6 +191,24 @@ public:
     };
 };
 
+/**
+ * @brief The Observer class is used to manage CoAP observers.
+ */
+class Observer
+{
+public:
+    IPAddress ip;
+    int port;
+    uint8_t token[8];
+    int token_len;
+    uint16_t counter; // Will be used as message ID.
+
+    /**
+     * @brief Construct a new Observer object.
+     */
+    Observer(IPAddress ip, int port, const uint8_t *token, int token_len);
+};
+
 class Coap
 {
 private:
@@ -221,6 +239,13 @@ public:
     uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen);
     uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid, const char *payload, size_t payloadlen, COAP_RESPONSE_CODE code, COAP_CONTENT_TYPE type, const uint8_t *token, int tokenlen);
 
+    /**
+     * @brief Notify the observer with the given payload.
+     *
+     * It sends a non-confirmable response according to the CoAP observe specifications.
+     */
+    uint16_t notify(Observer *observer, const char *payload, int payload_len, COAP_CONTENT_TYPE type);
+
     uint16_t get(IPAddress ip, int port, const char *url);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
@@ -230,35 +255,5 @@ public:
 
     bool loop();
 };
-
-/**
- * @brief The Observer class is used to manage CoAP observers.
- */
-class Observer
-{
-private:
-    IPAddress ip;
-    int port;
-    uint8_t token[8];
-    int token_len;
-    uint16_t counter; // Will be used as message ID.
-
-public:
-    /**
-     * @brief Construct a new Observer object.
-     */
-    Observer(IPAddress ip, int port, const uint8_t *token, int token_len)
-        : ip(ip), port(port), token_len(token_len), counter(0)
-    {
-        memcpy(this->token, token, token_len);
-    }
-
-    /**
-     * @brief Notify the observer with the given payload.
-     *
-     * It sends a non-confirmable response according to the CoAP observe specifications.
-     */
-    uint16_t notify(const char *payload, int payload_len, COAP_CONTENT_TYPE type);
-}
 
 #endif
