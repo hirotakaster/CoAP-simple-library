@@ -132,10 +132,6 @@ void send_notification()
 
         SERIAL_PRINTLN("Notified!");
 
-        // NOTE: sendResponse always sends a CONFIRMABLE message (ACK required).
-        // The client does not expect ACK for notifications, but this is a limitation of the library (that hardcodes CON_ACK).
-        // In theory, we should modify the library to send NON messages for notifications.
-        // coap.sendResponse(observer.ip, observer.port, observer.counter, (const char *)payload, payload_len, COAP_CONTENT, COAP_APPLICATION_OCTET_STREAM, observer.token, observer.token_len);
         coap.notify(observer, payload, payload_len, COAP_APPLICATION_OCTET_STREAM);
     }
 }
