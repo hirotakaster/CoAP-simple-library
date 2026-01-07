@@ -9,6 +9,7 @@ Some sample sketches for Arduino included(/examples/).
 
  - coaptest.ino : simple request/response sample.
  - coapserver.ino : server endpoint url callback sample.
+ - coapserver-with-observe.ino : observe sample (experimental; max observers is COAP_MAX_OBSERVERS, observers expire after COAP_OBSERVER_LEASE_MS, full table is refused).
  - esp32.ino, esp8266.ino : server endpoint url callback/response.
 
 ## How to use
