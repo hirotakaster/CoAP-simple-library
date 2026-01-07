@@ -487,8 +487,8 @@ static uint8_t encodeUintOption(uint32_t value, uint8_t out[3])
 {
     if (value == 0)
     {
-        out[0] = 0;
-        return 1;
+        // CoAP uint option encoding uses a zero-length option for value 0.
+        return 0;
     }
     if (value <= 0xFF)
     {
@@ -665,7 +665,7 @@ int Coap::notify(const char *url, const char *payload, int payload_len, COAP_CON
         if (!urlEquals(observers[i].url, url))
             continue;
 
-        if (COAP_OBSERVER_LEASE_MS > 0 && (now - observers[i].last_seen_ms) > COAP_OBSERVER_LEASE_MS)
+        if (COAP_OBSERVER_LEASE_MS > 0 && (unsigned long)(now - observers[i].last_seen_ms) > COAP_OBSERVER_LEASE_MS)
         {
             observers[i].in_use = false;
             continue;
