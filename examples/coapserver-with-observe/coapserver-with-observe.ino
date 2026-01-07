@@ -79,8 +79,13 @@ void endpoint_subscribe(CoapPacket &packet, IPAddress ip, int port)
     uint32_t observeValue = 0;
     if (!packet.getObserveValue(observeValue))
     {
-        coap.sendResponse(ip, port, packet.messageid, "invalid", strlen("invalid"), COAP_BAD_REQUEST, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
-        SERIAL_PRINTLN("Invalid subscription request");
+        // No (or invalid) Observe option: treat as a normal GET on an observable resource.
+        char payload[6]; // Max 5 digits for uint16_t + 1 for null terminator '\0'
+        sprintf(payload, "%u", 42);
+        int payload_len = strlen(payload);
+
+        coap.sendResponse(ip, port, packet.messageid, payload, payload_len, COAP_CONTENT, COAP_TEXT_PLAIN, packet.token, packet.tokenlen);
+        SERIAL_PRINTLN("Handled non-observe GET on /subscribe");
         return;
     }
 
@@ -121,11 +126,20 @@ void loop()
 // Demo notification with gibberish data.
 void send_notification()
 {
+    static unsigned long lastNotifyMs = 0;
+    const unsigned long notifyIntervalMs = 1000;
+    unsigned long now = millis();
+    if ((unsigned long)(now - lastNotifyMs) < notifyIntervalMs)
+    {
+        return;
+    }
+    lastNotifyMs = now;
+
     char payload[6]; // Max 5 digits for uint16_t + 1 for null terminator '\0'
     sprintf(payload, "%u", 42);
     int payload_len = strlen(payload);
 
-    if (coap.notify("subscribe", payload, payload_len, COAP_APPLICATION_OCTET_STREAM) > 0)
+    if (coap.notify("subscribe", payload, payload_len, COAP_TEXT_PLAIN) > 0)
     {
         SERIAL_PRINTLN("Notified!");
     }
