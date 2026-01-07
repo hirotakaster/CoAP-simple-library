@@ -80,7 +80,7 @@ void setup()
 
 void endpoint_subscribe(CoapPacket &packet, IPAddress ip, int port)
 {
-    if (packet.is_observe())
+    if (packet.isObserve())
     {
         observer = new Observer(ip, port, packet.token, packet.tokenlen);
 

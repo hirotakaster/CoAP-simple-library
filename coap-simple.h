@@ -146,7 +146,7 @@ public:
      * @brief Checks if the packet is an Observe request.
      * @return true if the packet is an Observe request, false otherwise.
      */
-    bool is_observe();
+    bool isObserve();
 };
 
 #if defined(ESP8266)

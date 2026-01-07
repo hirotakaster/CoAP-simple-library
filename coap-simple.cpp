@@ -12,7 +12,7 @@ void CoapPacket::addOption(uint8_t number, uint8_t length, uint8_t *opt_payload)
     ++optionnum;
 }
 
-bool CoapPacket::is_observe()
+bool CoapPacket::isObserve()
 {
     for (int i = 0; i < optionnum; i++)
     {
