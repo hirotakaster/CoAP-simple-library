@@ -94,7 +94,7 @@ void setup() {
   // start coap server/client
   // Recommended range is 1152..1472 bytes to reduce UDP/IP fragmentation.
   // Call this once during setup() to avoid repeated allocations and heap fragmentation.
-  coap.setResponseBufferSize(1152); 
+  // coap.setResponseBufferSize(1152); 
   coap.start();
 }
 
