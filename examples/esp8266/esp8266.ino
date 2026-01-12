@@ -25,7 +25,6 @@ bool LEDSTATE;
 // CoAP server endpoint URL
 void callback_light(CoapPacket &packet, IPAddress ip, int port) {
   Serial.println("[Light] ON/OFF");
-  coap.setResponseBufferSize(4096); // Dynamic response buffer size setting
   
   // send response
   char p[packet.payloadlen + 1];
@@ -93,6 +92,9 @@ void setup() {
   coap.response(callback_response);
 
   // start coap server/client
+  // Recommended range is 1152..1472 bytes to reduce UDP/IP fragmentation.
+  // Call this once during setup() to avoid repeated allocations and heap fragmentation.
+  coap.setResponseBufferSize(1152); 
   coap.start();
 }
 
