@@ -164,6 +164,32 @@ public:
      * @return true if Observe option is present and valid.
      */
     bool getObserveValue(uint32_t &value);
+
+    /**
+     * @brief Finds the first option with the given number.
+     * @return pointer to the option, or NULL if it is not present.
+     */
+    CoapOption *getOption(uint8_t number);
+
+    /**
+     * @brief Reads the Content-Format option (RFC 7252 5.10.3).
+     * @return the numeric content format, or -1 if the option is absent.
+     */
+    int getContentFormat();
+
+    /**
+     * @brief Assembles the Uri-Path ('/'-joined) into buf (RFC 7252 5.10.1).
+     * @return number of bytes written (excluding the terminating NUL),
+     *         or -1 if buf is NULL or too small.
+     */
+    int getUriPath(char *buf, size_t buflen);
+
+    /**
+     * @brief Assembles the Uri-Query ('&'-joined) into buf (RFC 7252 5.10.1).
+     * @return number of bytes written (excluding the terminating NUL),
+     *         or -1 if buf is NULL or too small.
+     */
+    int getQuery(char *buf, size_t buflen);
 };
 
 #if defined(ESP8266)
@@ -294,6 +320,23 @@ public:
     uint16_t get(IPAddress ip, int port, const char *url);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
+    uint16_t post(IPAddress ip, int port, const char *url, const char *payload);
+    uint16_t post(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
+    uint16_t del(IPAddress ip, int port, const char *url);
+
+    /**
+     * @brief CoAP ping: sends an empty Confirmable message (RFC 7252 4.3).
+     *
+     * The peer is expected to answer with a Reset, which makes this an
+     * inexpensive liveness check.
+     * @return the message id used.
+     */
+    uint16_t ping(IPAddress ip, int port);
+
+    /**
+     * @brief Sends an empty Reset message for the given message id (RFC 7252 4.2).
+     */
+    uint16_t sendReset(IPAddress ip, int port, uint16_t messageid);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type, uint16_t messageid);

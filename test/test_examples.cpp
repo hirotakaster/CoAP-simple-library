@@ -21,6 +21,8 @@ static Coap *g_coap = nullptr;
 // CoAP option numbers used in assertions below.
 static const uint16_t OPT_OBSERVE = 6;
 static const uint16_t OPT_URI_PATH = 11;
+static const uint16_t OPT_CONTENT_FORMAT = 12;
+static const uint16_t OPT_URI_QUERY = 15;
 
 // --- examples/coapserver, esp32, esp8266: "light" endpoint + response handler ---
 
@@ -179,6 +181,54 @@ static void test_example_multiple_endpoints()
     CHECK_EQ(g_tempHits, 1);
     DecodedPacket d = coapDecode(udp.sent[0].data);
     CHECK_EQ(d.payloadStr(), "23");
+}
+
+// A realistic server callback that inspects the parsed request with the
+// CoapPacket accessors (getUriPath / getQuery / getContentFormat).
+static std::string g_seenPath;
+static std::string g_seenQuery;
+static int g_seenFormat;
+static void callback_introspect(CoapPacket &packet, IPAddress ip, int port)
+{
+    char path[64];
+    char query[64];
+    packet.getUriPath(path, sizeof(path));
+    packet.getQuery(query, sizeof(query));
+    g_seenPath = path;
+    g_seenQuery = query;
+    g_seenFormat = packet.getContentFormat();
+    g_coap->sendResponse(ip, port, packet.messageid, "ok");
+}
+
+static void test_example_callback_reads_request()
+{
+    FakeUDP udp;
+    Coap coap(udp);
+    g_coap = &coap;
+    g_seenPath = g_seenQuery = "";
+    g_seenFormat = 0;
+
+    coap.server(callback_introspect, "api/data");
+    coap.start();
+
+    // GET api/data?x=1 with Content-Format application/json. Options must be in
+    // ascending order: Uri-Path(11), Content-Format(12), Uri-Query(15).
+    std::vector<uint8_t> buf = {
+        (uint8_t)((0x01 << 6) | ((COAP_CON & 0x03) << 4) | 0),
+        (uint8_t)COAP_GET, 0x00, 0x05};
+    uint16_t running = 0;
+    coapAppendOption(buf, OPT_URI_PATH, running, {'a', 'p', 'i'});
+    coapAppendOption(buf, OPT_URI_PATH, running, {'d', 'a', 't', 'a'});
+    coapAppendOption(buf, OPT_CONTENT_FORMAT, running, {0x00, 0x32}); // 50
+    coapAppendOption(buf, OPT_URI_QUERY, running, {'x', '=', '1'});
+
+    udp.pushIncoming(buf, IPAddress(5, 6, 7, 8), 5683);
+    coap.loop();
+
+    CHECK_EQ(g_seenPath, "api/data");
+    CHECK_EQ(g_seenQuery, "x=1");
+    CHECK_EQ(g_seenFormat, (int)COAP_APPLICATION_JSON);
+    CHECK_EQ(coapDecode(udp.sent[0].data).payloadStr(), "ok");
 }
 
 // --- examples/coapserver-with-observe: the "subscribe" Observe endpoint ---
@@ -354,6 +404,7 @@ void runExampleTests()
     RUN(test_example_light_get_reports_state);
     RUN(test_example_client_get_then_response_callback);
     RUN(test_example_multiple_endpoints);
+    RUN(test_example_callback_reads_request);
     RUN(test_example_subscribe_plain_get);
     RUN(test_example_subscribe_register_and_notify);
     RUN(test_example_subscribe_then_unsubscribe);

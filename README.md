@@ -4,6 +4,20 @@
 ## Source Code
 This lightweight library's source code contains only 2 files. coap-simple.cpp, coap-simple.h.
 
+## Features
+Following RFC 7252 (CoAP) and RFC 7641 (Observe):
+
+ - Client requests: `get`, `put`, `post`, `del`, plus the generic `send` (with token, Content-Format and message-id control).
+ - Server endpoints: register URL callbacks with `server`, single response callback with `response`.
+ - Empty messages: `ping` (empty Confirmable liveness check) and `sendReset`; `loop` answers an inbound CoAP ping with a Reset automatically.
+ - Reading received packets from a callback: `CoapPacket::getOption`, `getContentFormat`, `getUriPath`, `getQuery`, `isObserve`, `getObserveValue`.
+ - Observe: `addObserver` / `removeObserver` / `notify`, `sendObserveResponse`.
+
+DELETE is exposed as `del` because `delete` is a C++ keyword.
+
+## Tests
+Host-side unit and integration tests live in `test/` (no hardware needed): `cd test && make test`. They run on every pull request to `master`.
+
 ## Example
 Some sample sketches for Arduino included(/examples/).
 

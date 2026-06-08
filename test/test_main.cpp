@@ -141,6 +141,62 @@ static void test_getObserveValue()
     CHECK(!p3.getObserveValue(v));
 }
 
+static void test_getOption()
+{
+    CoapPacket p;
+    uint8_t path[3] = {'a', 'p', 'i'};
+    uint8_t cf[2] = {0x00, 0x32};
+    p.addOption(OPT_URI_PATH, 3, path);
+    p.addOption(OPT_CONTENT_FORMAT, 2, cf);
+
+    CoapOption *o = p.getOption(OPT_CONTENT_FORMAT);
+    CHECK(o != NULL);
+    CHECK_EQ(o->length, 2);
+    CHECK(p.getOption(OPT_URI_QUERY) == NULL);
+}
+
+static void test_getContentFormat()
+{
+    CoapPacket p;
+    CHECK_EQ(p.getContentFormat(), -1);
+
+    uint8_t cf[2] = {0x00, 0x32}; // 50 -> application/json
+    p.addOption(OPT_CONTENT_FORMAT, 2, cf);
+    CHECK_EQ(p.getContentFormat(), (int)COAP_APPLICATION_JSON);
+}
+
+static void test_getUriPath()
+{
+    CoapPacket p;
+    char buf[64];
+
+    // No path options -> empty string, length 0.
+    CHECK_EQ(p.getUriPath(buf, sizeof(buf)), 0);
+    CHECK_EQ(std::string(buf), "");
+
+    uint8_t a[3] = {'a', 'p', 'i'};
+    uint8_t b[4] = {'t', 'e', 'm', 'p'};
+    p.addOption(OPT_URI_PATH, 3, a);
+    p.addOption(OPT_URI_PATH, 4, b);
+    CHECK_EQ(p.getUriPath(buf, sizeof(buf)), 8);
+    CHECK_EQ(std::string(buf), "api/temp");
+
+    char small[4];
+    CHECK_EQ(p.getUriPath(small, sizeof(small)), -1); // doesn't fit
+}
+
+static void test_getQuery()
+{
+    CoapPacket p;
+    char buf[64];
+    uint8_t q1[3] = {'a', '=', '1'};
+    uint8_t q2[3] = {'b', '=', '2'};
+    p.addOption(OPT_URI_QUERY, 3, q1);
+    p.addOption(OPT_URI_QUERY, 3, q2);
+    CHECK_EQ(p.getQuery(buf, sizeof(buf)), 7);
+    CHECK_EQ(std::string(buf), "a=1&b=2");
+}
+
 // --- Client requests: get / put / send ---
 
 static void test_get_builds_con_get()
@@ -183,6 +239,34 @@ static void test_put_builds_payload()
     CHECK_EQ(d.code, (uint8_t)COAP_PUT);
     CHECK_EQ(d.optionString(OPT_URI_PATH), "res");
     CHECK_EQ(d.payloadStr(), "value");
+}
+
+static void test_post_builds_payload()
+{
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.start();
+
+    coap.post(IPAddress(10, 0, 0, 5), 5683, "res", "value");
+    DecodedPacket d = coapDecode(udp.sent[0].data);
+    CHECK(d.valid);
+    CHECK_EQ(d.code, (uint8_t)COAP_POST);
+    CHECK_EQ(d.optionString(OPT_URI_PATH), "res");
+    CHECK_EQ(d.payloadStr(), "value");
+}
+
+static void test_del_builds_delete()
+{
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.start();
+
+    coap.del(IPAddress(10, 0, 0, 5), 5683, "res");
+    DecodedPacket d = coapDecode(udp.sent[0].data);
+    CHECK(d.valid);
+    CHECK_EQ(d.code, (uint8_t)COAP_DELETE);
+    CHECK_EQ(d.optionString(OPT_URI_PATH), "res");
+    CHECK_EQ(d.payload.size(), 0u);
 }
 
 static void test_send_with_content_format()
@@ -251,6 +335,43 @@ static void test_multi_segment_path()
     CHECK_EQ(d.options[1].str(), "a");
     CHECK_EQ(d.options[2].str(), "b");
     CHECK_EQ(d.options[3].str(), "c");
+}
+
+// --- Empty messages: ping / reset ---
+
+static void test_ping_is_empty_con()
+{
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.start();
+
+    uint16_t mid = coap.ping(IPAddress(1, 2, 3, 4), 5683);
+    CHECK_EQ(udp.sent.size(), 1u);
+    CHECK_EQ(udp.sent[0].data.size(), 4u); // header only
+
+    DecodedPacket d = coapDecode(udp.sent[0].data);
+    CHECK(d.valid);
+    CHECK_EQ(d.type, (uint8_t)COAP_CON);
+    CHECK_EQ(d.code, 0);
+    CHECK_EQ(d.tokenlen, 0);
+    CHECK_EQ(d.messageid, mid);
+    CHECK_EQ(d.options.size(), 0u);
+    CHECK_EQ(d.payload.size(), 0u);
+}
+
+static void test_sendReset_is_empty_rst()
+{
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.start();
+
+    coap.sendReset(IPAddress(1, 2, 3, 4), 5683, 0xBEEF);
+    DecodedPacket d = coapDecode(udp.sent[0].data);
+    CHECK(d.valid);
+    CHECK_EQ(udp.sent[0].data.size(), 4u);
+    CHECK_EQ(d.type, (uint8_t)COAP_RESET);
+    CHECK_EQ(d.code, 0);
+    CHECK_EQ(d.messageid, 0xBEEF);
 }
 
 // --- Responses ---
@@ -421,6 +542,41 @@ static void test_loop_ignores_malformed()
     udp.pushIncoming({0x00, 0x01}, IPAddress(1, 1, 1, 1), 5683);
     coap.loop();
     CHECK_EQ(g_serverCb.hits, 0);
+    CHECK_EQ(udp.sent.size(), 0u);
+}
+
+static void test_loop_responds_to_ping_with_reset()
+{
+    resetCaptures();
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.server(serverCallback, "hello");
+    coap.start();
+
+    // An empty Confirmable message is a CoAP ping.
+    udp.pushIncoming(coapBuildRequest(COAP_CON, 0, 0x4242, {}), IPAddress(9, 9, 9, 9), 7000);
+    coap.loop();
+
+    CHECK_EQ(g_serverCb.hits, 0); // not dispatched as a request
+    CHECK_EQ(udp.sent.size(), 1u);
+    DecodedPacket d = coapDecode(udp.sent[0].data);
+    CHECK_EQ(d.type, (uint8_t)COAP_RESET);
+    CHECK_EQ(d.code, 0);
+    CHECK_EQ(d.messageid, 0x4242);
+    CHECK(udp.sent[0].ip == IPAddress(9, 9, 9, 9));
+    CHECK_EQ(udp.sent[0].port, 7000);
+}
+
+static void test_loop_ignores_empty_reset()
+{
+    resetCaptures();
+    FakeUDP udp;
+    Coap coap(udp);
+    coap.start();
+
+    // A peer's Reset (e.g. the reply to our ping) is silently ignored.
+    udp.pushIncoming(coapBuildRequest(COAP_RESET, 0, 0x0001, {}), IPAddress(1, 1, 1, 1), 5683);
+    coap.loop();
     CHECK_EQ(udp.sent.size(), 0u);
 }
 
@@ -598,14 +754,24 @@ int main()
     RUN(test_addOption_respects_max);
     RUN(test_isObserve);
     RUN(test_getObserveValue);
+    RUN(test_getOption);
+    RUN(test_getContentFormat);
+    RUN(test_getUriPath);
+    RUN(test_getQuery);
 
     // Client requests
     RUN(test_get_builds_con_get);
     RUN(test_put_builds_payload);
+    RUN(test_post_builds_payload);
+    RUN(test_del_builds_delete);
     RUN(test_send_with_content_format);
     RUN(test_send_with_token);
     RUN(test_query_parsing);
     RUN(test_multi_segment_path);
+
+    // Empty messages
+    RUN(test_ping_is_empty_con);
+    RUN(test_sendReset_is_empty_rst);
 
     // Responses
     RUN(test_sendResponse_basic);
@@ -619,6 +785,8 @@ int main()
     RUN(test_loop_ack_calls_response);
     RUN(test_loop_observe_request_flags);
     RUN(test_loop_ignores_malformed);
+    RUN(test_loop_responds_to_ping_with_reset);
+    RUN(test_loop_ignores_empty_reset);
 
     // Observers + notify
     RUN(test_addObserver_and_notify);

@@ -15,9 +15,19 @@ CoAPSimpleLibrary	KEYWORD1
 sendResponse	KEYWORD2
 get	KEYWORD2
 put	KEYWORD2
+post	KEYWORD2
+del	KEYWORD2
+ping	KEYWORD2
+sendReset	KEYWORD2
 response	KEYWORD2
 loop	KEYWORD2
 notify	KEYWORD2
+getOption	KEYWORD2
+getContentFormat	KEYWORD2
+getUriPath	KEYWORD2
+getQuery	KEYWORD2
+getObserveValue	KEYWORD2
+isObserve	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

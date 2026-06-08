@@ -28,13 +28,15 @@ fails (which is what the CI uses to fail the build).
 
 ## Coverage
 
-**Library unit tests** (`test_main.cpp`) exercise packet/option encoding
-(`CoapPacket`), client requests (`get`/`put`/`send`, query parsing, tokens,
-content-format), response building (`sendResponse`, `sendObserveResponse`,
-observe uint encoding), incoming packet handling and dispatch (`loop`,
-NOT_FOUND, ACK/response callbacks, malformed input), and the Observe machinery
-(`addObserver`, `removeObserver`, `notify`, sequence numbering, lease expiry,
-capacity limits).
+**Library unit tests** (`test_main.cpp`) exercise packet/option encoding and the
+read accessors (`CoapPacket`: `addOption`, `getOption`, `getContentFormat`,
+`getUriPath`, `getQuery`, `isObserve`, `getObserveValue`), client requests
+(`get`/`put`/`post`/`del`/`send`, query parsing, tokens, content-format), empty
+messages (`ping`, `sendReset`), response building (`sendResponse`,
+`sendObserveResponse`, observe uint encoding), incoming packet handling and
+dispatch (`loop`, NOT_FOUND, ACK/response callbacks, CoAP-ping → Reset, malformed
+input), and the Observe machinery (`addObserver`, `removeObserver`, `notify`,
+sequence numbering, lease expiry, capacity limits).
 
 **Example integration tests** (`test_examples.cpp`) reproduce the actual
 callbacks from `examples/` and drive a full request → callback → response

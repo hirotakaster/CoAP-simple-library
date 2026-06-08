@@ -47,6 +47,63 @@ bool CoapPacket::getObserveValue(uint32_t &value)
     return false;
 }
 
+CoapOption *CoapPacket::getOption(uint8_t number)
+{
+    for (int i = 0; i < optionnum; i++)
+    {
+        if (options[i].number == number)
+            return &options[i];
+    }
+    return NULL;
+}
+
+int CoapPacket::getContentFormat()
+{
+    CoapOption *opt = getOption(COAP_CONTENT_FORMAT);
+    if (opt == NULL)
+        return -1;
+    uint32_t v = 0;
+    for (uint8_t i = 0; i < opt->length; i++)
+        v = (v << 8) | opt->buffer[i];
+    return (int)v;
+}
+
+// Joins the options matching `number` into buf, separated by `sep`.
+static int joinOptions(CoapPacket &packet, uint8_t number, char sep, char *buf, size_t buflen)
+{
+    if (buf == NULL || buflen == 0)
+        return -1;
+
+    size_t pos = 0;
+    for (int i = 0; i < packet.optionnum; i++)
+    {
+        if (packet.options[i].number != number)
+            continue;
+        if (pos > 0)
+        {
+            if (pos + 1 >= buflen)
+                return -1;
+            buf[pos++] = sep;
+        }
+        if (pos + packet.options[i].length >= buflen)
+            return -1;
+        memcpy(buf + pos, packet.options[i].buffer, packet.options[i].length);
+        pos += packet.options[i].length;
+    }
+    buf[pos] = '\0';
+    return (int)pos;
+}
+
+int CoapPacket::getUriPath(char *buf, size_t buflen)
+{
+    return joinOptions(*this, COAP_URI_PATH, '/', buf, buflen);
+}
+
+int CoapPacket::getQuery(char *buf, size_t buflen)
+{
+    return joinOptions(*this, COAP_URI_QUERY, '&', buf, buflen);
+}
+
 Coap::Coap(
     UDP &udp,
     int coap_buf_size /* default value is COAP_BUF_MAX_SIZE */
@@ -186,6 +243,21 @@ uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload,
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, payloadlen);
 }
 
+uint16_t Coap::post(IPAddress ip, int port, const char *url, const char *payload)
+{
+    return this->send(ip, port, url, COAP_CON, COAP_POST, NULL, 0, (uint8_t *)payload, strlen(payload));
+}
+
+uint16_t Coap::post(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen)
+{
+    return this->send(ip, port, url, COAP_CON, COAP_POST, NULL, 0, (uint8_t *)payload, payloadlen);
+}
+
+uint16_t Coap::del(IPAddress ip, int port, const char *url)
+{
+    return this->send(ip, port, url, COAP_CON, COAP_DELETE, NULL, 0, NULL, 0);
+}
+
 uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen)
 {
     return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, COAP_NONE);
@@ -272,6 +344,39 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
     }
 
     // send packet
+    return this->sendPacket(packet, ip, port);
+}
+
+uint16_t Coap::ping(IPAddress ip, int port)
+{
+    // CoAP ping is an empty Confirmable message: Code 0.00, no token, no
+    // options and no payload (RFC 7252 4.3).
+    CoapPacket packet;
+    packet.type = COAP_CON;
+    packet.code = 0;
+    packet.token = NULL;
+    packet.tokenlen = 0;
+    packet.payload = NULL;
+    packet.payloadlen = 0;
+    packet.optionnum = 0;
+    packet.messageid = rand();
+
+    return this->sendPacket(packet, ip, port);
+}
+
+uint16_t Coap::sendReset(IPAddress ip, int port, uint16_t messageid)
+{
+    // An empty Reset message (Code 0.00) echoing the offending message id.
+    CoapPacket packet;
+    packet.type = COAP_RESET;
+    packet.code = 0;
+    packet.token = NULL;
+    packet.tokenlen = 0;
+    packet.payload = NULL;
+    packet.payloadlen = 0;
+    packet.optionnum = 0;
+    packet.messageid = messageid;
+
     return this->sendPacket(packet, ip, port);
 }
 
@@ -365,6 +470,17 @@ bool Coap::loop()
             packet.token = this->rx_buffer + 4;
         else
         {
+            packetlen = _udp->parsePacket();
+            continue;
+        }
+
+        // Empty message (Code 0.00): an empty Confirmable message is a CoAP
+        // ping that we answer with a Reset; empty ACK/Reset are acknowledged
+        // by ignoring them (RFC 7252 4.1, 4.3).
+        if (packet.code == 0)
+        {
+            if (packet.type == COAP_CON)
+                sendReset(_udp->remoteIP(), _udp->remotePort(), packet.messageid);
             packetlen = _udp->parsePacket();
             continue;
         }
