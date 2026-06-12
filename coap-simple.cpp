@@ -155,7 +155,7 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
     // make payload
     if (packet.payloadlen > 0)
     {
-        if ((packetSize + 1 + packet.payloadlen) >= (size_t)coap_buf_size)
+        if ((packetSize + 1 + packet.payloadlen) >= coap_buf_size)
         {
             return 0;
         }
@@ -213,7 +213,7 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
 
     // use URI_HOST UIR_PATH
     char ipaddress[16] = "";
-    snprintf(ipaddress, sizeof(ipaddress), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     packet.addOption(COAP_URI_HOST, strlen(ipaddress), (uint8_t *)ipaddress);
 
     /*
@@ -410,8 +410,7 @@ bool Coap::loop()
             {
                 if (packet.options[i].number == COAP_URI_PATH && packet.options[i].length > 0)
                 {
-                    // option length is a uint8_t, so 256 bytes always suffices.
-                    char urlname[256];
+                    char urlname[packet.options[i].length + 1];
                     memcpy(urlname, packet.options[i].buffer, packet.options[i].length);
                     urlname[packet.options[i].length] = 0;
                     if (url.length() > 0)

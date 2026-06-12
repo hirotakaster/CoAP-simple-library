@@ -242,6 +242,7 @@ private:
     UDP *_udp;
     CoapUri uri;
     CoapCallback resp;
+    int _port;
     int coap_buf_size;
     uint8_t *tx_buffer = NULL;
     uint8_t *rx_buffer = NULL;
