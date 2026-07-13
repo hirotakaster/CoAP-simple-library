@@ -44,6 +44,15 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef COAP_MAX_OBSERVERS
 #define COAP_MAX_OBSERVERS 4
 #endif
+#ifndef COAP_MAX_PENDING_CON
+#define COAP_MAX_PENDING_CON 4
+#endif
+#ifndef COAP_ACK_TIMEOUT_MS
+#define COAP_ACK_TIMEOUT_MS 750UL
+#endif
+#ifndef COAP_MAX_RETRANSMIT
+#define COAP_MAX_RETRANSMIT 4
+#endif
 #ifndef COAP_OBSERVER_LEASE_MS
 #define COAP_OBSERVER_LEASE_MS 60000UL
 #endif
@@ -176,6 +185,19 @@ typedef std::function<void(CoapPacket &, IPAddress, int)> CoapCallback;
 typedef void (*CoapCallback)(CoapPacket &, IPAddress, int);
 #endif
 
+typedef enum
+{
+    COAP_DELIVERY_ACKNOWLEDGED = 0,
+    COAP_DELIVERY_TIMEOUT = 1,
+    COAP_DELIVERY_RESET = 2
+} COAP_DELIVERY_STATE;
+
+#if defined(ESP8266) || defined(ESP32)
+typedef std::function<void(uint16_t, IPAddress, int, COAP_DELIVERY_STATE)> CoapDeliveryCallback;
+#else
+typedef void (*CoapDeliveryCallback)(uint16_t, IPAddress, int, COAP_DELIVERY_STATE);
+#endif
+
 class CoapUri
 {
 private:
@@ -246,6 +268,20 @@ private:
     int coap_buf_size;
     uint8_t *tx_buffer = NULL;
     uint8_t *rx_buffer = NULL;
+    CoapDeliveryCallback delivery = NULL;
+
+    struct PendingCon
+    {
+        bool in_use = false;
+        IPAddress ip;
+        uint16_t port = 0;
+        uint16_t messageid = 0;
+        uint16_t packetlen = 0;
+        uint8_t retransmits = 0;
+        unsigned long next_retry_ms = 0;
+        uint8_t *packet = NULL;
+    };
+    PendingCon pending[COAP_MAX_PENDING_CON];
 
     struct ObserveEntry
     {
@@ -262,6 +298,11 @@ private:
 
     uint16_t sendPacket(CoapPacket &packet, IPAddress ip);
     uint16_t sendPacket(CoapPacket &packet, IPAddress ip, int port);
+    bool sendRawPacket(const uint8_t *packet, size_t packetlen, IPAddress ip, int port);
+    int findFreePending() const;
+    int findPending(uint16_t messageid, IPAddress ip, int port) const;
+    void clearPending(int index, COAP_DELIVERY_STATE state, bool notify);
+    void processRetransmissions();
     int parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf, size_t buflen);
 
 public:
@@ -272,6 +313,7 @@ public:
     bool start();
     bool start(int port);
     void response(CoapCallback c) { resp = c; }
+    void onDelivery(CoapDeliveryCallback c) { delivery = c; }
 
     void server(CoapCallback c, String url) { uri.add(c, url); }
     uint16_t sendResponse(IPAddress ip, int port, uint16_t messageid);
@@ -295,6 +337,8 @@ public:
     uint16_t get(IPAddress ip, int port, const char *url);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload);
     uint16_t put(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
+    uint16_t putNonConfirmable(IPAddress ip, int port, const char *url, const char *payload);
+    uint16_t putNonConfirmable(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type);
     uint16_t send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type, uint16_t messageid);

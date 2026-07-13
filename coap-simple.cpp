@@ -56,6 +56,8 @@ Coap::Coap(
     this->coap_buf_size = coap_buf_size;
     this->tx_buffer = new uint8_t[this->coap_buf_size];
     this->rx_buffer = new uint8_t[this->coap_buf_size];
+    for (int i = 0; i < COAP_MAX_PENDING_CON; i++)
+        this->pending[i].packet = new uint8_t[this->coap_buf_size];
 }
 
 Coap::~Coap()
@@ -65,6 +67,9 @@ Coap::~Coap()
 
     if (this->rx_buffer != NULL)
         delete[] this->rx_buffer;
+    for (int i = 0; i < COAP_MAX_PENDING_CON; i++)
+        if (this->pending[i].packet != NULL)
+            delete[] this->pending[i].packet;
 }
 
 bool Coap::start()
@@ -86,6 +91,14 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip)
 
 uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
 {
+    int pendingIndex = -1;
+    if (packet.type == COAP_CON)
+    {
+        pendingIndex = findFreePending();
+        if (pendingIndex < 0)
+            return 0;
+    }
+
     uint8_t *p = this->tx_buffer;
     uint16_t running_delta = 0;
     uint16_t packetSize = 0;
@@ -164,11 +177,82 @@ uint16_t Coap::sendPacket(CoapPacket &packet, IPAddress ip, int port)
         packetSize += 1 + packet.payloadlen;
     }
 
-    _udp->beginPacket(ip, port);
-    _udp->write(this->tx_buffer, packetSize);
-    _udp->endPacket();
+    if (!sendRawPacket(this->tx_buffer, packetSize, ip, port))
+        return 0;
+
+    if (pendingIndex >= 0)
+    {
+        PendingCon &entry = pending[pendingIndex];
+        entry.in_use = true;
+        entry.ip = ip;
+        entry.port = (uint16_t)port;
+        entry.messageid = packet.messageid;
+        entry.packetlen = packetSize;
+        entry.retransmits = 0;
+        entry.next_retry_ms = millis() + COAP_ACK_TIMEOUT_MS;
+        memcpy(entry.packet, this->tx_buffer, packetSize);
+    }
 
     return packet.messageid;
+}
+
+bool Coap::sendRawPacket(const uint8_t *packet, size_t packetlen, IPAddress ip, int port)
+{
+    if (packet == NULL || packetlen == 0 || packetlen >= (size_t)coap_buf_size)
+        return false;
+    if (_udp->beginPacket(ip, port) == 0)
+        return false;
+    if (_udp->write(packet, packetlen) != packetlen)
+        return false;
+    return _udp->endPacket() == 1;
+}
+
+int Coap::findFreePending() const
+{
+    for (int i = 0; i < COAP_MAX_PENDING_CON; i++)
+        if (!pending[i].in_use && pending[i].packet != NULL)
+            return i;
+    return -1;
+}
+
+int Coap::findPending(uint16_t messageid, IPAddress ip, int port) const
+{
+    for (int i = 0; i < COAP_MAX_PENDING_CON; i++)
+        if (pending[i].in_use && pending[i].messageid == messageid && pending[i].ip == ip && pending[i].port == (uint16_t)port)
+            return i;
+    return -1;
+}
+
+void Coap::clearPending(int index, COAP_DELIVERY_STATE state, bool notify)
+{
+    if (index < 0 || index >= COAP_MAX_PENDING_CON || !pending[index].in_use)
+        return;
+    uint16_t messageid = pending[index].messageid;
+    IPAddress ip = pending[index].ip;
+    int port = pending[index].port;
+    pending[index].in_use = false;
+    pending[index].packetlen = 0;
+    if (notify && delivery)
+        delivery(messageid, ip, port, state);
+}
+
+void Coap::processRetransmissions()
+{
+    unsigned long now = millis();
+    for (int i = 0; i < COAP_MAX_PENDING_CON; i++)
+    {
+        PendingCon &entry = pending[i];
+        if (!entry.in_use || (long)(now - entry.next_retry_ms) < 0)
+            continue;
+        if (entry.retransmits >= COAP_MAX_RETRANSMIT)
+        {
+            clearPending(i, COAP_DELIVERY_TIMEOUT, true);
+            continue;
+        }
+        sendRawPacket(entry.packet, entry.packetlen, entry.ip, entry.port);
+        entry.retransmits++;
+        entry.next_retry_ms = now + (COAP_ACK_TIMEOUT_MS << entry.retransmits);
+    }
 }
 
 uint16_t Coap::get(IPAddress ip, int port, const char *url)
@@ -186,6 +270,16 @@ uint16_t Coap::put(IPAddress ip, int port, const char *url, const char *payload,
     return this->send(ip, port, url, COAP_CON, COAP_PUT, NULL, 0, (uint8_t *)payload, payloadlen);
 }
 
+uint16_t Coap::putNonConfirmable(IPAddress ip, int port, const char *url, const char *payload)
+{
+    return this->send(ip, port, url, COAP_NONCON, COAP_PUT, NULL, 0, (uint8_t *)payload, strlen(payload));
+}
+
+uint16_t Coap::putNonConfirmable(IPAddress ip, int port, const char *url, const char *payload, size_t payloadlen)
+{
+    return this->send(ip, port, url, COAP_NONCON, COAP_PUT, NULL, 0, (uint8_t *)payload, payloadlen);
+}
+
 uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen)
 {
     return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, COAP_NONE);
@@ -193,7 +287,10 @@ uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COA
 
 uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type)
 {
-    return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, content_type, rand());
+    uint16_t messageid = 0;
+    while (messageid == 0)
+        messageid = (uint16_t)rand();
+    return this->send(ip, port, url, type, method, token, tokenlen, payload, payloadlen, content_type, messageid);
 }
 
 uint16_t Coap::send(IPAddress ip, int port, const char *url, COAP_TYPE type, COAP_METHOD method, const uint8_t *token, uint8_t tokenlen, const uint8_t *payload, size_t payloadlen, COAP_CONTENT_TYPE content_type, uint16_t messageid)
@@ -338,6 +435,7 @@ int Coap::parseOption(CoapOption *option, uint16_t *running_delta, uint8_t **buf
 
 bool Coap::loop()
 {
+    processRetransmissions();
     int32_t packetlen = _udp->parsePacket();
 
     while (packetlen > 0)
@@ -396,10 +494,13 @@ bool Coap::loop()
             }
         }
 
-        if (packet.type == COAP_ACK)
+        if (packet.type == COAP_ACK || packet.type == COAP_RESET)
         {
-            // call response function
-            resp(packet, _udp->remoteIP(), _udp->remotePort());
+            int pendingIndex = findPending(packet.messageid, _udp->remoteIP(), _udp->remotePort());
+            if (pendingIndex >= 0)
+                clearPending(pendingIndex, packet.type == COAP_ACK ? COAP_DELIVERY_ACKNOWLEDGED : COAP_DELIVERY_RESET, true);
+            if (resp)
+                resp(packet, _udp->remoteIP(), _udp->remotePort());
         }
         else
         {
@@ -419,23 +520,23 @@ bool Coap::loop()
                 }
             }
 
-            if (!uri.find(url))
+            CoapCallback handler = uri.find(url);
+            if (!handler)
             {
-                sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
-                             COAP_NOT_FOUND, COAP_NONE, NULL, 0);
+                if (packet.type == COAP_CON)
+                    sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
+                                 COAP_NOT_FOUND, COAP_NONE, packet.token, packet.tokenlen);
             }
             else
             {
-                uri.find(url)(packet, _udp->remoteIP(), _udp->remotePort());
+                // A transport ACK confirms receipt only. Application handlers still
+                // send their own transaction-level result when processing matters.
+                if (packet.type == COAP_CON)
+                    sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid, NULL, 0,
+                                 COAP_VALID, COAP_NONE, packet.token, packet.tokenlen);
+                handler(packet, _udp->remoteIP(), _udp->remotePort());
             }
         }
-
-        /* this type check did not use.
-        if (packet.type == COAP_CON) {
-            // send response
-             sendResponse(_udp->remoteIP(), _udp->remotePort(), packet.messageid);
-        }
-         */
 
         // next packet
         packetlen = _udp->parsePacket();
